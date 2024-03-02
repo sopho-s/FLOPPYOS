@@ -1,0 +1,8 @@
+*.o
+*.bin
+*.flp
+*.dd
+*.iso
+burn.sh
+Terminal.asm
+Boot
