@@ -252,5 +252,3 @@ address dw 0
 testval dw 0
 tempnum dw 0
 quot dw 0
-
-times 129580-($-$$) db 0x04

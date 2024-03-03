@@ -3,5 +3,8 @@
 *.flp
 *.dd
 *.iso
+*.txt
+*.pub
+*
 burn.sh
 Boot

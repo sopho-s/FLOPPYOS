@@ -95,5 +95,5 @@ printNewline:
     int 0x10
     ret
 
-times 510-($-$$) db 0x01              
+times 510-($-$$) db 0x00            
 dw 0xaa55

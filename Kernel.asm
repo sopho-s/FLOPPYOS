@@ -138,5 +138,5 @@ numbertoread db 0
 tempnum dw 0
 quot dw 0
 
-times 7680-($-$$) db 0x02          
+times 7680-($-$$) db 0x00        
 dw 0x08
