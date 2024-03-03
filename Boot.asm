@@ -46,10 +46,6 @@ start:
     mov bp, 0x8000
     mov sp, 0x0000
     call readsect
-    mov ax, [0x7e00]
-    mov [tempnum], ax
-    call printmdigit
-
     
     jmp 0x7e00
 
@@ -167,7 +163,7 @@ readsect:
     int 0x13
     ret
 
-sectorread dw 34
+sectorread dw 0x23
 sectortoread db 0
 tracktoread db 0
 headtoread db 0

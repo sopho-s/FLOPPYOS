@@ -93,7 +93,8 @@ INT69next2:
     ; checks if the two characters match
     mov di, ax
     mov dx, [di]
-    cmp [cx], dx
+    mov di, cx
+    cmp [di], dx
     jne INT69fail2
     ; increments both pointers
     inc ax
@@ -237,7 +238,6 @@ headspercylinder dw 2
 reservedsectors dw 1
 numberoffats db 2
 rootentries dw 224
-totalsectors dw 2880
 sectorsperfat dw 9
 
 sectorread dw 0
