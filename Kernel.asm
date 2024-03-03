@@ -91,6 +91,8 @@ inputwait:
     je inputend
     ; prints the entered character and stores it in memory
     call printChar
+    cmp al, 0x08
+    je backspace
     mov di, cx
     add di, [terminalcmdmem]
     mov [di], al
@@ -107,6 +109,16 @@ inputwait:
     call printString
     ; makes new terminal line
     jmp bootTerminal
+backspace:
+    ; performs a backspace
+    cmp cx, 0
+    je inputwait
+    mov al, 0x20
+    call printChar
+    mov al, 0x08
+    call printChar
+    dec cx
+    jmp inputwait
 inputend:
     call printNewline
     cmp cx, 0
@@ -152,12 +164,14 @@ command:
 next:
     ; pops command
     pop ax
+    ; checks if there are more commands left to search through
     mov dx, [i]
     inc dx
     mov [i], dx
     mov ax, [cmdam]
     cmp dl, al
     je notfound
+    ; if there are more commands then check the next command
     mov cx, 0
     mov bx, [i]
     add bx, [i]
@@ -172,6 +186,7 @@ next:
     push ax
     jmp command
 found:
+    ; if the command is found go to the func table and find which command to execute
     pop ax
     mov ah, 0x0e 
     mov bx, cmdfound
@@ -181,6 +196,7 @@ found:
     mov [i], ax
     ret
 notfound:
+    ; if the command was not found reset the i value
     mov ah, 0x0e 
     mov bx, cmdnotfounderror
     call printString
@@ -189,6 +205,7 @@ notfound:
     ret
 
 functable:
+    ; choose which function to excecute
     mov cx, [i]
     cmp cx, 0
     je shutdown
@@ -198,12 +215,14 @@ functable:
     
 
 clear:
+    ; clears the screen
     mov al, 0x03
     mov ah, 0x00
     int 0x10
     ret
 
 shutdown:
+    ; shutsdown the computer
     mov ah, 0x53
     mov al, 0x07
     mov bx, 0x01
@@ -212,6 +231,7 @@ shutdown:
     ret
 
 test:
+    ; just a test message
     mov bx, testmsg
     mov ah, 0x0e 
     call printString
