@@ -227,14 +227,14 @@ shutdown:
 
 printsector:
     mov ah, 1
-    mov al, 0
-    mov cx, 1
+    mov al, 0x00
+    mov cl, 0x01
     mov dx, [generalmem]
     int 0x69
     ; prints the value at the sector
     mov di, [generalmem]
     mov ax, [di]
-    mov [tempnum], 10
+    mov [tempnum], ax
     call printmdigit
     ret
 

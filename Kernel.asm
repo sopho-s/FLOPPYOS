@@ -13,6 +13,7 @@ kernelstart:
     call printNewline
     ; sets up interupts
     call setupint
+    int 0x69
     ; boots terminal
     mov ax, 0x9000
     mov [memorystart], ax
@@ -38,6 +39,7 @@ INT69:
     je endint69
     cmp ah, 1
     jne endint69
+    ; sets all the preconditions
     push ax
     xor ah, ah
     mov [sectorread], ax
@@ -47,7 +49,32 @@ INT69:
     mov [numbertoread], cx
     pop cx
     mov [memorystart], dx
-    call readsect
+    mov ax, [sectorread]
+    ; calculates the CHS
+    xor dx, dx
+    div WORD [sectorspertrack]
+    inc dl
+    mov BYTE [sectortoread], dl
+    xor dx, dx
+    div WORD [headspercylinder]
+    mov BYTE [headtoread], dl
+    mov BYTE [tracktoread], al
+    ; resets the disk
+    mov ah, 0
+    mov dl, 0
+    int 0x13
+    ; reads the data
+    xor ax, ax                          
+    mov es, ax
+    mov ds, ax
+    mov bx, [memorystart]
+    mov ah, 0x02
+    mov al, [numbertoread]
+    mov ch, [tracktoread]
+    mov cl, [sectortoread]
+    mov dh, [headtoread]
+    mov dl, 0
+    int 0x13
 endint69:
     iret
 
