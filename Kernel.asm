@@ -25,20 +25,20 @@ kernelstart:
     jmp 0x9000
 
 setupint:
-    XOR AX,AX
-    MOV ES,AX
-    CLI ; Disable interrupts, might not be needed if seting up a software-only interrupt
+    xor ax,ax
+    mov es,ax
+    cli 
     mov di, INT69
-    MOV ES:[0x69*4], di  ; setups offset of handler 22h
-    MOV ES:[0x69*4+2], CS            ; Here I'm assuming segment of handler is current CS
-    STI
+    mov ES:[0x69*4], di  
+    mov ES:[0x69*4+2], CS
+    sti
     ret
 
 INT69:
     cmp ah, 0
     je endint69
     cmp ah, 1
-    jne endint69
+    jne INT69check2
     ; sets all the preconditions
     push ax
     xor ah, ah
@@ -75,6 +75,52 @@ INT69:
     mov dh, [headtoread]
     mov dl, 0
     int 0x13
+INT69check2:
+    cmp ah, 2
+    jne endint69
+    ; reads the root directory
+    mov ah, 1
+    mov ax, 19
+    mov cx, 13
+    mov dx, 0x4200
+    int 0x69
+    ; finds where the file is located
+    mov ax, 0
+    mov [count], ax
+    mov cx, bx
+    mov ax, 0x4200
+INT69next2:
+    ; checks if the two characters match
+    mov di, ax
+    mov dx, [di]
+    cmp [cx], dx
+    jne INT69fail2
+    ; increments both pointers
+    inc ax
+    inc cx
+    push cx
+    mov cx, [count]
+    ; checks if the value was found
+    cmp cx, 11
+    je INT69pass2
+    inc cx
+    mov [count], cx
+    pop cx
+INT69fail2:
+    inc ax
+    mov cx, bx
+    jmp INT69next2
+INT69pass2:
+    pop cx
+    add cx, 16
+    mov di, cx
+    xor ax, ax
+    mov al, [di]
+    add al, 31
+    mov cx, 2
+    mov dx, 0x9000
+    mov ah, 1
+    int 0x69
 endint69:
     iret
 
@@ -188,6 +234,12 @@ totalsectors dw 2880
 sectorspertrack dw 18
 tracksperside dw 80
 headspercylinder dw 2
+reservedsectors dw 1
+numberoffats db 2
+rootentries dw 224
+totalsectors dw 2880
+sectorsperfat dw 9
+
 sectorread dw 0
 sectortoread db 0
 tracktoread db 0
@@ -196,6 +248,6 @@ numbertoread db 0
 tempnum dw 0
 quot dw 0
 memorystart dw 0
+count dw 0
 
-times 7680-($-$$) db 0x00        
-dw 0x08
+times 7680-($-$$) db 0x00

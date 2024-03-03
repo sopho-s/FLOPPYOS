@@ -45,19 +45,54 @@ start:
     mov ds, ax
     mov bp, 0x8000
     mov sp, 0x0000
-    mov bx, 0x7e00
-    
-    mov ah, 2
-    mov al, 2
-    mov ch, 0
-    mov cl, 2
-    mov dh, 0
-    mov dl, 0
-    int 0x13
+    call readsect
+    mov ax, [0x7e00]
+    mov [tempnum], ax
+    call printmdigit
 
     
     jmp 0x7e00
 
+
+printmdigit:
+    mov cx, 0
+    mov ax, [tempnum]
+    mov [quot], ax
+repeat:
+    xor ax, ax
+    xor bx, bx
+    xor dx, dx
+    mov ax, [quot]
+    mov bx, 10
+    div bx
+    mov [quot], ax
+    cmp ax, 0
+    je divend
+    mov ax, dx
+    push ax
+    inc cx
+    jmp repeat
+divend:
+    mov ax, dx
+    push ax
+    inc cx
+repeatprint:
+    dec cx
+    pop ax
+    mov [tempnum], ax
+    push cx
+    call printdigit
+    pop cx
+    cmp cx, 0
+    jne repeatprint
+    ret
+
+printdigit:
+    mov ax, 0x30
+    add [tempnum], ax
+    mov ax, [tempnum]
+    call printChar
+    ret
 
 lowmemory:
     mov ah, 0x0e
@@ -94,6 +129,57 @@ printNewline:
     mov al, 0x0D
     int 0x10
     ret
+
+
+printChar:
+    mov ah, 0x0e 
+    int 0x10
+    ret
+
+
+LBACHS:
+    xor dx, dx
+    div WORD [sectorspertrack]
+    inc dl
+    mov BYTE [sectortoread], dl
+    xor dx, dx
+    div WORD [headspercylinder]
+    mov BYTE [headtoread], dl
+    mov BYTE [tracktoread],al
+    ret
+
+readsect:
+    mov ax, [sectorread]
+    call LBACHS
+    mov ah, 0
+    mov dl, 0
+    int 0x13
+    xor ax, ax                          
+    mov es, ax
+    mov ds, ax
+    mov bx, 0x7e00
+    mov ah, 0x02
+    mov al, [numbertoread]
+    mov ch, [tracktoread]
+    mov cl, [sectortoread]
+    mov dh, [headtoread]
+    mov dl, 0
+    int 0x13
+    ret
+
+sectorread dw 34
+sectortoread db 0
+tracktoread db 0
+headtoread db 0
+numbertoread db 2
+totalsectors dw 2880
+sectorspertrack dw 18
+tracksperside dw 80
+headspercylinder dw 2
+memorystart dw 0x7e00
+quot dw 0
+tempnum dw 0
+ 
 
 times 510-($-$$) db 0x00            
 dw 0xaa55
