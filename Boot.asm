@@ -34,7 +34,7 @@ start:
     int 0x15
     jc apmerror
     mov bl, 0
-    mov [0x0000], bl
+    mov [0x1000], bl
 
     ; load in kernel and hand over control
     mov ah, 0
