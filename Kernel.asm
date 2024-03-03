@@ -11,13 +11,45 @@ kernelstart:
     mov bx, startmsg
     call printString
     call printNewline
+    ; sets up interupts
+    call setupint
     ; boots terminal
+    mov ax, 0x9000
+    mov [memorystart], ax
     mov ax, 0x60
     mov [sectorread], ax
     mov ax, 2
     mov [numbertoread], ax
     call readsect
     jmp 0x9000
+
+setupint:
+    XOR AX,AX
+    MOV ES,AX
+    CLI ; Disable interrupts, might not be needed if seting up a software-only interrupt
+    mov di, INT69
+    MOV ES:[0x69*4], di  ; setups offset of handler 22h
+    MOV ES:[0x69*4+2], CS            ; Here I'm assuming segment of handler is current CS
+    STI
+    ret
+
+INT69:
+    cmp ah, 0
+    je endint69
+    cmp ah, 1
+    jne endint69
+    push ax
+    xor ah, ah
+    mov [sectorread], ax
+    pop ax
+    push cx
+    xor ch, ch
+    mov [numbertoread], cx
+    pop cx
+    mov [memorystart], dx
+    call readsect
+endint69:
+    iret
 
 printmdigit:
     mov cx, 0
@@ -91,7 +123,6 @@ readsect:
     xor ax, ax                          
     mov es, ax
     mov ds, ax
-    mov bp, 0xf000
     mov bx, 0x9000
     mov ah, 0x02
     mov al, [numbertoread]
@@ -137,6 +168,7 @@ headtoread db 0
 numbertoread db 0
 tempnum dw 0
 quot dw 0
+memorystart dw 0
 
 times 7680-($-$$) db 0x00        
 dw 0x08

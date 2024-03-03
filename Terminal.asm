@@ -2,8 +2,9 @@ bits 16
 
 org 0x9000
 startup:
-    mov ah, 0x0e 
+    mov ah, 0x0e
     mov bx, startmessage
+    int 0x69
     call printString
     call printNewline
 bootTerminal:
@@ -203,6 +204,8 @@ functable:
     je shutdown
     cmp cx, 1
     je clear
+    cmp cx, 2
+    je printsector
     ret
     
 
@@ -222,11 +225,17 @@ shutdown:
     int 0x15
     ret
 
-test:
-    ; just a test message
-    mov bx, testmsg
-    mov ah, 0x0e 
-    call printString
+printsector:
+    mov ah, 1
+    mov al, 0
+    mov cx, 1
+    mov dx, [generalmem]
+    int 0x69
+    ; prints the value at the sector
+    mov di, [generalmem]
+    mov ax, [di]
+    mov [tempnum], 10
+    call printmdigit
     ret
 
 
@@ -234,7 +243,7 @@ test:
 startmessage db "Terminal started", 0
 terminalcmdmem dw 0x8800
 terminalcmdsize dw 0x199
-generalmem dw 0x9000
+generalmem dw 0x9900
 generalmemsize dw 0x6fff
 terminalstartline db ">", 0
 memerror db "Out of memory", 0
@@ -242,10 +251,10 @@ cmdnotfounderror db "Command not found", 0
 cmdfound db "Command found", 0
 testmsg db "Test", 0
 generalpoint dw 0
-cmdam db 2
-cmds db "shutdown", "clear"
-cmdsize dw 8, 5
-cmdcumsize dw 8, 13
+cmdam db 3
+cmds db "shutdown", "clear", "printsector"
+cmdsize dw 8, 5, 11
+cmdcumsize dw 8, 13, 24
 i dw 0
 count dw 0
 address dw 0
