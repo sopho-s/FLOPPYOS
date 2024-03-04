@@ -43,6 +43,10 @@ INT69:
 ;                                   ;
 ; OUTPUTS:                          ;
 ; AL = FAIL STATE                   ;
+;                                   ;
+; FAILSTATES:                       ;
+; 0 = SUCCESS                       ;
+; 1 = FAIL TO READ SECTOR           ;
 ; ********************************* ;
     cmp ah, 1
     jne INT69check2
@@ -90,6 +94,11 @@ INT69:
 ;                                   ;
 ; OUTPUTS:                          ;
 ; AL = FAIL STATE                   ;
+;                                   ;
+; FAILSTATES:                       ;
+; 0 = SUCCESS                       ;
+; 1 = FAIL TO READ SECTOR           ;
+; 2 = FAIL TO FIND FILE             ;
 ; ********************************* ;
 INT69check2:
     cmp ah, 2
@@ -134,7 +143,8 @@ INT69next2:
     ; | |    | |__| |  /  \  |  \| | |  __| |__   
     ; | |    |  __  | / /\ \ | . ` | | |_ |  __|  
     ; | |____| |  | |/ ____ \| |\  | |__| | |____ 
-    ;  \_____|_|  |_/_/    \_\_| \_|\_____|______|                                       
+    ;  \_____|_|  |_/_/    \_\_| \_|\_____|______|    
+    ;                                   
     mov cx, [totalexp]
     inc cx
     mov [totalexp], cx

@@ -127,6 +127,14 @@ checkcmd:
     mov ax, cmds
     push ax ; stack {cmds}
 command:
+    ; currently if one command shares all the first letters of another, if the smaller command is first then that one will be executed
+    ;   _____ _    _          _   _  _____ ______ 
+    ;  / ____| |  | |   /\   | \ | |/ ____|  ____|
+    ; | |    | |__| |  /  \  |  \| | |  __| |__   
+    ; | |    |  __  | / /\ \ | . ` | | |_ |  __|  
+    ; | |____| |  | |/ ____ \| |\  | |__| | |____ 
+    ;  \_____|_|  |_/_/    \_\_| \_|\_____|______|    
+    ;              
     ; finds current command size
     mov ax, [i]
     mov bx, 2
@@ -205,7 +213,7 @@ functable:
     cmp cx, 1
     je clear
     cmp cx, 2
-    je printsector
+    je find
     ret
     
 
@@ -225,17 +233,7 @@ shutdown:
     int 0x15
     ret
 
-printsector:
-    mov ah, 1
-    mov al, 0x00
-    mov cl, 0x01
-    mov dx, [generalmem]
-    int 0x69
-    ; prints the value at the sector
-    mov di, [generalmem]
-    mov ax, [di]
-    mov [tempnum], ax
-    call printmdigit
+find:
     ret
 
 
@@ -252,9 +250,9 @@ cmdfound db "Command found", 0
 testmsg db "Test", 0
 generalpoint dw 0
 cmdam db 3
-cmds db "shutdown", "clear", "printsector"
-cmdsize dw 8, 5, 11
-cmdcumsize dw 8, 13, 24
+cmds db "shutdown", "clear", "find"
+cmdsize dw 8, 5, 4
+cmdcumsize dw 8, 13, 17
 i dw 0
 count dw 0
 address dw 0
