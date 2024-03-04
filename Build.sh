@@ -1,5 +1,5 @@
 export PATH=$PATH:/usr/local/i386elfgcc/bin
-
+sudo apt install nasm
 fallocate -l 1474560 test.img
 
 nasm "Boot.asm" -f bin -o "Boot.bin"
