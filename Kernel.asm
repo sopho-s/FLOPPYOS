@@ -16,17 +16,9 @@ kernelstart:
     ; boots terminal
     mov ah, 2
     mov bx, terminalname
+    mov cx, 0x9000
     int 0x69
-    xor ah, ah
-    mov [tempnum], ax
-    call printmdigit
-    call printNewline
-    mov ah, 0x0e
-    mov ax, [0x9000]
-    mov [tempnum], ax
-    call printmdigit
-    call printNewline
-    jmp $
+    jmp 0x9000
 
 setupint:
     xor ax,ax
@@ -93,7 +85,7 @@ INT69:
 ; READ FILE|AH=2|INT69              ;
 ;                                   ;
 ; INPUTS:                           ;
-; DX = FILE NAME                    ;
+; BX = FILE NAME                    ;
 ; CX = RESULTANT MEMORY LOCATION    ;
 ;                                   ;
 ; OUTPUTS:                          ;
@@ -104,16 +96,21 @@ INT69check2:
     jne endint69
     ; reads the root directory
     push cx
+    push bx
     mov ah, 1
-    mov ax, 19
-    mov cx, 13
+    mov bx, 19
+    mov cx, 1
     mov dx, 0x4200
     int 0x69
     ; finds where the file is located
     mov ax, 0
     mov [count], ax
+    pop bx
     mov cx, bx
     mov ax, 0x4200
+    jmp INT69next2
+INT69next2frompush:
+    pop ax
 INT69next2:
     ; checks if the two characters match
     mov di, ax
@@ -121,46 +118,60 @@ INT69next2:
     mov di, cx
     cmp [di], dx
     jne INT69fail2
-    push ax
-    mov [tempnum], ax
-    call printmdigit
-    call printNewline
-    mov [tempnum], cx
-    call printmdigit
-    call printNewline
-    pop ax
     ; increments both pointers
     inc ax
-    inc cx
     push cx
     mov cx, [count]
     ; checks if the value was found
-    cmp cx, 11
+    cmp cx, 9
     je INT69pass2
+    ; increments the count
     inc cx
     mov [count], cx
+    ; needs to change so it can do all the directories but holds the current amount of directories explored
+    ;   _____ _    _          _   _  _____ ______ 
+    ;  / ____| |  | |   /\   | \ | |/ ____|  ____|
+    ; | |    | |__| |  /  \  |  \| | |  __| |__   
+    ; | |    |  __  | / /\ \ | . ` | | |_ |  __|  
+    ; | |____| |  | |/ ____ \| |\  | |__| | |____ 
+    ;  \_____|_|  |_/_/    \_\_| \_|\_____|______|                                       
+    mov cx, [totalexp]
+    inc cx
+    mov [totalexp], cx
     pop cx
+    ; increments the name of the directory
+    mov cx, bx
+    add cx, [count]
     jmp INT69next2
 INT69fail2:
+    ; increments the currently compared character
     inc ax
     mov cx, bx
     push cx
+    ; resets count
     xor cx, cx
     mov [count], cx
     pop cx
-    cmp ax, 50
-    jl INT69next2
+    push ax
+    ; increments the count of the total searched
+    mov ax, [totalexp]
+    inc ax
+    mov [totalexp], ax
+    cmp ax, 0x200
+    jl INT69next2frompush
+    pop ax
     pop ax
     mov al, 2
     iret
 INT69pass2:
+    ; finds the physical sector and loads it into memory at the specified location
     pop cx
-    add cx, 16
-    mov di, cx
+    add ax, 16
+    mov di, ax
     mov bx, [di]
     add bx, 31
     mov cx, 2
-    mov dx, 0x9000
+    pop dx
     mov ah, 1
     int 0x69
     iret
@@ -292,6 +303,7 @@ tempnum dw 0
 quot dw 0
 memorystart dw 0
 count dw 0
+totalexp dw 0
 
 times 7680-($-$$) db 0x00
 dw 0x88
