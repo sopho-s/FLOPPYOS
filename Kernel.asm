@@ -17,10 +17,11 @@ kernelstart:
     mov ah, 2
     mov bx, terminalname
     int 0x69
-    mov ah, 0x0e 
-    mov bx, kernelstartmsg
-    call printString
+    xor ah, ah
+    mov [tempnum], ax
+    call printmdigit
     call printNewline
+    mov ah, 0x0e
     mov ax, [0x9000]
     mov [tempnum], ax
     call printmdigit
@@ -86,6 +87,7 @@ INT69:
     mov dh, [headtoread]
     mov dl, 0
     int 0x13
+    setc al
     iret
 ; ********************************* ;
 ; READ FILE|AH=2|INT69              ;
@@ -149,6 +151,7 @@ INT69fail2:
     cmp ax, 50
     jl INT69next2
     pop ax
+    mov al, 2
     iret
 INT69pass2:
     pop cx
