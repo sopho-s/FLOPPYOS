@@ -163,7 +163,7 @@ readsect:
     int 0x13
     ret
 
-sectorread dw 0x23
+sectorread dw 34
 sectortoread db 0
 tracktoread db 0
 headtoread db 0

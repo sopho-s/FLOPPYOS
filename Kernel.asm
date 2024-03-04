@@ -13,16 +13,19 @@ kernelstart:
     call printNewline
     ; sets up interupts
     call setupint
-    int 0x69
     ; boots terminal
-    mov ax, 0x9000
-    mov [memorystart], ax
-    mov ax, 0x60
-    mov [sectorread], ax
-    mov ax, 2
-    mov [numbertoread], ax
-    call readsect
-    jmp 0x9000
+    mov ah, 2
+    mov bx, terminalname
+    int 0x69
+    mov ah, 0x0e 
+    mov bx, kernelstartmsg
+    call printString
+    call printNewline
+    mov ax, [0x9000]
+    mov [tempnum], ax
+    call printmdigit
+    call printNewline
+    jmp $
 
 setupint:
     xor ax,ax
@@ -37,13 +40,21 @@ setupint:
 INT69:
     cmp ah, 0
     je endint69
+; ********************************* ;
+; READ SECTOR|AH=1|INT69            ;
+;                                   ;
+; INPUTS:                           ;
+; BX = SECTOR START NUMBER          ;
+; CX = NUMBER OF SECTORS TO READ    ;
+; DX = RESULTANT MEMORY LOCATION    ;
+;                                   ;
+; OUTPUTS:                          ;
+; AL = FAIL STATE                   ;
+; ********************************* ;
     cmp ah, 1
     jne INT69check2
     ; sets all the preconditions
-    push ax
-    xor ah, ah
-    mov [sectorread], ax
-    pop ax
+    mov [sectorread], bx
     push cx
     xor ch, ch
     mov [numbertoread], cx
@@ -75,10 +86,22 @@ INT69:
     mov dh, [headtoread]
     mov dl, 0
     int 0x13
+    iret
+; ********************************* ;
+; READ FILE|AH=2|INT69              ;
+;                                   ;
+; INPUTS:                           ;
+; DX = FILE NAME                    ;
+; CX = RESULTANT MEMORY LOCATION    ;
+;                                   ;
+; OUTPUTS:                          ;
+; AL = FAIL STATE                   ;
+; ********************************* ;
 INT69check2:
     cmp ah, 2
     jne endint69
     ; reads the root directory
+    push cx
     mov ah, 1
     mov ax, 19
     mov cx, 13
@@ -96,6 +119,14 @@ INT69next2:
     mov di, cx
     cmp [di], dx
     jne INT69fail2
+    push ax
+    mov [tempnum], ax
+    call printmdigit
+    call printNewline
+    mov [tempnum], cx
+    call printmdigit
+    call printNewline
+    pop ax
     ; increments both pointers
     inc ax
     inc cx
@@ -107,21 +138,29 @@ INT69next2:
     inc cx
     mov [count], cx
     pop cx
+    jmp INT69next2
 INT69fail2:
     inc ax
     mov cx, bx
-    jmp INT69next2
+    push cx
+    xor cx, cx
+    mov [count], cx
+    pop cx
+    cmp ax, 50
+    jl INT69next2
+    pop ax
+    iret
 INT69pass2:
     pop cx
     add cx, 16
     mov di, cx
-    xor ax, ax
-    mov al, [di]
-    add al, 31
+    mov bx, [di]
+    add bx, 31
     mov cx, 2
     mov dx, 0x9000
     mov ah, 1
     int 0x69
+    iret
 endint69:
     iret
 
@@ -227,10 +266,11 @@ LBACHS:
 
 
 ; data
-terminalpostion db 0x
+terminalname db "TERMINALBIN", 0
 kernelstartmsg db "Kernel loaded", 0
 startmsg db "Welcome to FLOPPYOS", 0
 terminalerror db "Error loading terminal", 0
+testmsg db "TEST", 0
 totalsectors dw 2880
 sectorspertrack dw 18
 tracksperside dw 80
@@ -251,3 +291,4 @@ memorystart dw 0
 count dw 0
 
 times 7680-($-$$) db 0x00
+dw 0x88
