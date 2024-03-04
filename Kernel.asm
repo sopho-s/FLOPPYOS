@@ -30,6 +30,11 @@ setupint:
     sti
     ret
 
+; ********************************* ;
+; INT 69                            ;
+; READ AND WRITING                  ;
+; ********************************* ;
+
 INT69:
     cmp ah, 0
     je endint69
