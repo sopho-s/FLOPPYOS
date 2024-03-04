@@ -16,4 +16,4 @@ sudo cp ./Kernel.bin /media/floppy1/
 sudo cp ./Terminal.bin /media/floppy1/
 sudo umount /media/floppy1/
 dd status=noxfer conv=notrunc if=OS.bin of=test.img
-qemu-system-i386 -m 1 -fda test.img
+#qemu-system-i386 -m 1 -fda test.img
