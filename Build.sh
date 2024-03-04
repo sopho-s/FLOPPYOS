@@ -1,12 +1,19 @@
 export PATH=$PATH:/usr/local/i386elfgcc/bin
 
+fallocate -l 1474560 test.img
+
 nasm "Boot.asm" -f bin -o "Boot.bin"
 nasm "Kernel.asm" -f bin -o "Kernel.bin"
-nasm "Padding.asm" -f bin -o "Padding.bin"
 nasm "Terminal.asm" -f bin -o "Terminal.bin"
 
+cat "Boot.bin"  > "OS.bin"
 
-cat "Boot.bin" "Kernel.bin" "Padding.bin" "Terminal.bin" > "OS.bin"
-
-dd status=noxfer conv=notrunc if=OS.bin of=myflp.flp
-qemu-system-i386 -m 1 -fda myflp.flp
+mkfs.vfat -F 12 test.img
+sudo rm -r /media/floppy1
+sudo mkdir /media/floppy1
+sudo mount -o loop test.img /media/floppy1/
+sudo cp ./Kernel.bin /media/floppy1/
+sudo cp ./Terminal.bin /media/floppy1/
+sudo umount /media/floppy1/
+dd status=noxfer conv=notrunc if=OS.bin of=test.img
+qemu-system-i386 -m 1 -fda test.img
