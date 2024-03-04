@@ -2,17 +2,17 @@ bits 16
 
 org 0x9000
 startup:
-    mov ah, 0x0e
     mov bx, startmessage
-    int 0x69
-    call printString
-    call printNewline
+    mov ah, 2
+    int 0x42
+    mov ah, 5
+    int 0x42
 bootTerminal:
     ; starts terminal and intitialses the terminal memory store
-    mov ah, 0x0e 
     mov cx, 0
     mov bx, terminalstartline
-    call printString
+    mov ah, 2
+    int 0x42
 inputwait:
     ; waits for user input from the keyboard
     mov ah, 0
@@ -20,7 +20,8 @@ inputwait:
     cmp al, 0x0D
     je inputend
     ; prints the entered character and stores it in memory
-    call printChar
+    mov ah, 1
+    int 0x42
     cmp al, 0x08
     je backspace
     mov di, cx
@@ -34,9 +35,13 @@ inputwait:
     inc ax
     cmp cx, ax
     jne inputwait
-    call printNewline
+    push ax
+    mov ah, 5
+    int 0x42
     mov bx, memerror
-    call printString
+    mov ah, 2
+    int 0x42
+    pop ax
     ; makes new terminal line
     jmp bootTerminal
 backspace:
@@ -44,82 +49,23 @@ backspace:
     cmp cx, 0
     je inputwait
     mov al, 0x20
-    call printChar
+    mov ah, 1
+    int 0x42
     mov al, 0x08
-    call printChar
+    mov ah, 1
+    int 0x42
     dec cx
     jmp inputwait
 inputend:
-    call printNewline
+    mov ah, 5
+    int 0x42
     cmp cx, 0
     je new
     call checkcmd
-    call printNewline
+    mov ah, 5
+    int 0x42
 new:
     jmp bootTerminal
-
-printChar:
-    mov ah, 0x0e 
-    int 0x10
-    ret
-
-printString:
-    mov al, [bx]
-    cmp al, 0
-    je end
-    int 0x10
-    inc bx
-    jmp printString
-end:
-    ret
-
-printNewline:
-    mov ah, 0x0e
-    mov al, 0x0A
-    int 0x10
-    mov al, 0x0D
-    int 0x10
-    ret
-
-printmdigit:
-    mov cx, 0
-    mov ax, [tempnum]
-    mov [quot], ax
-repeat:
-    xor ax, ax
-    xor bx, bx
-    xor dx, dx
-    mov ax, [quot]
-    mov bx, 10
-    div bx
-    mov [quot], ax
-    cmp ax, 0
-    je divend
-    mov ax, dx
-    push ax
-    inc cx
-    jmp repeat
-divend:
-    mov ax, dx
-    push ax
-    inc cx
-repeatprint:
-    dec cx
-    pop ax
-    mov [tempnum], ax
-    push cx
-    call printdigit
-    pop cx
-    cmp cx, 0
-    jne repeatprint
-    ret
-
-printdigit:
-    mov ax, 0x30
-    add [tempnum], ax
-    mov ax, [tempnum]
-    call printChar
-    ret
 
 checkcmd:
     mov cx, 0
@@ -189,18 +135,18 @@ next:
 found:
     ; if the command is found go to the func table and find which command to execute
     pop ax
-    mov ah, 0x0e 
     mov bx, cmdfound
-    call printString
+    mov ah, 2
+    int 0x42
     call functable
     mov ax, 0
     mov [i], ax
     ret
 notfound:
     ; if the command was not found reset the i value
-    mov ah, 0x0e 
     mov bx, cmdnotfounderror
-    call printString
+    mov ah, 2
+    int 0x42
     mov ax, 0
     mov [i], ax
     ret

@@ -2,17 +2,20 @@ bits 16
 
 org 0x7e00
 kernelstart:
-    ; print startup message
-    mov ah, 0x0e 
-    mov bx, kernelstartmsg
-    call printString
-    call printNewline
-    ; prints os name
-    mov bx, startmsg
-    call printString
-    call printNewline
     ; sets up interupts
     call setupint
+    ; print startup message
+    mov ah, 2
+    mov bx, kernelstartmsg
+    int 0x42
+    mov ah, 5
+    int 0x42
+    ; prints os name
+    mov ah, 2
+    mov bx, startmsg
+    int 0x42
+    mov ah, 5
+    int 0x42
     ; boots terminal
     mov ah, 2
     mov bx, terminalname
@@ -27,6 +30,9 @@ setupint:
     mov di, INT69
     mov ES:[0x69*4], di  
     mov ES:[0x69*4+2], CS
+    mov di, INT42
+    mov ES:[0x42*4], di  
+    mov ES:[0x42*4+2], CS
     sti
     ret
 
@@ -107,6 +113,30 @@ INT69:
 ; ********************************* ;
 INT69check2:
     cmp ah, 2
+    jne INT69check3
+    mov ah, 3
+    int 0x69
+    mov cx, 2
+    mov ah, 1
+    int 0x69
+    iret
+; ********************************* ;
+; FIND FILE|AH=3|INT69              ;
+;                                   ;
+; INPUTS:                           ;
+; BX = FILE NAME                    ;
+;                                   ;
+; OUTPUTS:                          ;
+; AL = FAIL STATE                   ;
+; BX = SECTOR NUMBER                ;
+;                                   ;
+; FAILSTATES:                       ;
+; 0 = SUCCESS                       ;
+; 1 = FAILED TO READ SECTOR         ;
+; 2 = FAILED TO FIND FILE           ;
+; ********************************* ;
+INT69check3:
+    cmp ah, 3
     jne endint69
     ; reads the root directory
     push cx
@@ -116,29 +146,32 @@ INT69check2:
     mov cx, 1
     mov dx, 0x4200
     int 0x69
+    setc al
+    cmp al, 1
+    je endint69
     ; finds where the file is located
     mov ax, 0
     mov [count], ax
     pop bx
     mov cx, bx
     mov ax, 0x4200
-    jmp INT69next2
-INT69next2frompush:
+    jmp INT69next3
+INT69next3frompush:
     pop ax
-INT69next2:
+INT69next3:
     ; checks if the two characters match
     mov di, ax
     mov dx, [di]
     mov di, cx
     cmp [di], dx
-    jne INT69fail2
+    jne INT69fail3
     ; increments both pointers
     inc ax
     push cx
     mov cx, [count]
     ; checks if the value was found
     cmp cx, 9
-    je INT69pass2
+    je INT69pass3
     ; increments the count
     inc cx
     mov [count], cx
@@ -157,8 +190,8 @@ INT69next2:
     ; increments the name of the directory
     mov cx, bx
     add cx, [count]
-    jmp INT69next2
-INT69fail2:
+    jmp INT69next3
+INT69fail3:
     ; increments the currently compared character
     inc ax
     mov cx, bx
@@ -173,30 +206,105 @@ INT69fail2:
     inc ax
     mov [totalexp], ax
     cmp ax, 0x200
-    jl INT69next2frompush
+    jl INT69next3frompush
     pop ax
     pop ax
     mov al, 2
     iret
-INT69pass2:
+INT69pass3:
     ; finds the physical sector and loads it into memory at the specified location
     pop cx
+    pop dx
     add ax, 16
     mov di, ax
     mov bx, [di]
     add bx, 31
-    mov cx, 2
-    pop dx
-    mov ah, 1
-    int 0x69
+    mov al, 0
     iret
 endint69:
     iret
 
-printmdigit:
+
+; ********************************* ;
+; INT 42                            ;
+; BASIC VIDEO FUNCTIONS             ;
+; ********************************* ;
+
+INT42:
+    cmp ah, 0
+    je endint42
+; ********************************* ;
+; PRINT CHAR|AH=1|INT42             ;
+;                                   ;
+; INPUTS:                           ;
+; AL = CHAR                         ;
+;                                   ;
+; OUTPUTS:                          ;
+; NONE                              ;
+; ********************************* ;
+    cmp ah, 1
+    jne INT42check2
+    mov ah, 0x0e 
+    int 0x10
+    iret
+; ********************************* ;
+; PRINT STRING|AH=2|INT42           ;
+;                                   ;
+; INPUTS:                           ;
+; BX = STRING POINTER, ENDS WITH 0  ;
+;                                   ;
+; OUTPUTS:                          ;
+; NONE                              ;
+; ********************************* ;
+INT42check2:
+    cmp ah, 2
+    jne INT42check3
+printString:
+    ; move current character in al to print
+    mov al, [bx]
+    ; check if there is a character to print
+    cmp al, 0
+    je end
+    mov ah, 1
+    int 0x42
+    ; increments to the next character and calls itself
+    inc bx
+    jmp printString
+end:
+    iret
+; ********************************* ;
+; PRINT DIGIT|AH=3|INT42            ;
+;                                   ;
+; INPUTS:                           ;
+; AL = DIGIT                        ;
+;                                   ;
+; OUTPUTS:                          ;
+; NONE                              ;
+; ********************************* ;
+INT42check3:
+    cmp ah, 3
+    jne INT42check4
+    ; adds 0x30 to the number to get its ASCII equivalent
+    add al, 0x30
+    ; prints number
+    mov ah, 0x01
+    int 0x42
+    iret
+; ********************************* ;
+; PRINT MULTIPLE DIGITS|AH=4|INT42  ;
+;                                   ;
+; INPUTS:                           ;
+; BX = DIGITS                       ;
+;                                   ;
+; OUTPUTS:                          ;
+; NONE                              ;
+; ********************************* ;
+INT42check4:
+    cmp ah, 4
+    jne INT42check5
     ; sets all parameters 
     mov cx, 0
-    mov ax, [tempnum]
+    mov ax, bx
     mov [quot], ax
 repeat:
     ; clears all not used registers
@@ -224,53 +332,36 @@ repeatprint:
     ; decrements the digit counter and gets the next digit to print from the stack
     dec cx
     pop ax
-    mov [tempnum], ax
     push cx
     ; prints the digit
-    call printdigit
+    mov ah, 3
+    int 0x42
     pop cx
     ; checks if there are any more digits, if not finish
     cmp cx, 0
     jne repeatprint
-    ret
-
-printdigit:
-    ; adds 0x30 to the number to get its ASCII equivalent 
-    mov ax, 0x30
-    ; prints the number
-    add [tempnum], ax
-    mov ax, [tempnum]
-    call printChar
-    ret
-
-printChar:
-    ; sets the bios function to display the ASCII value in the al
-    mov ah, 0x0e 
-    int 0x10
-    ret
-
-printString:
-    ; move current character in al to print
-    mov al, [bx]
-    ; check if there is a character to print
-    cmp al, 0
-    je end
-    ; prints the character
-    int 0x10
-    ; increments to the next character and calls itself
-    inc bx
-    jmp printString
-end:
-    ret
-
-printNewline:
+    iret
+; ********************************* ;
+; PRINT NEW LINE|AH=5|INT42         ;
+;                                   ;
+; INPUTS:                           ;
+; NONE                              ;
+;                                   ;
+; OUTPUTS:                          ;
+; NONE                              ;
+; ********************************* ;
+INT42check5:
+    cmp ah, 5
+    jne endint42
     ; prints new line
     mov ah, 0x0e
     mov al, 0x0A
     int 0x10
     mov al, 0x0D
     int 0x10
-    ret
+    iret
+endint42:
+    iret
 
 Terminalerr:
     ; shows terminal error
