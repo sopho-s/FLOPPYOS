@@ -245,17 +245,21 @@ printChar:
     ret
 
 printString:
-
+    ; move current character in al to print
     mov al, [bx]
+    ; check if there is a character to print
     cmp al, 0
     je end
+    ; prints the character
     int 0x10
+    ; increments to the next character and calls itself
     inc bx
     jmp printString
 end:
     ret
 
 printNewline:
+    ; prints new line
     mov ah, 0x0e
     mov al, 0x0A
     int 0x10
@@ -263,41 +267,11 @@ printNewline:
     int 0x10
     ret
 
-readsect:
-    mov ax, [sectorread]
-    call LBACHS
-    mov ah, 0
-    mov dl, 0
-    int 0x13
-    xor ax, ax                          
-    mov es, ax
-    mov ds, ax
-    mov bx, 0x9000
-    mov ah, 0x02
-    mov al, [numbertoread]
-    mov ch, [tracktoread]
-    mov cl, [sectortoread]
-    mov dh, [headtoread]
-    mov dl, 0
-    int 0x13
-    jc Terminalerr
-    ret
-
 Terminalerr:
+    ; shows terminal error
     mov ah, 0x0e 
     mov bx, terminalerror
     call printString
-    ret
-
-LBACHS:
-    xor dx, dx
-    div WORD [sectorspertrack]
-    inc dl
-    mov BYTE [sectortoread], dl
-    xor dx, dx
-    div WORD [headspercylinder]
-    mov BYTE [headtoread], dl
-    mov BYTE [tracktoread],al
     ret
 
 
