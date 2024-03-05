@@ -174,6 +174,14 @@ INT69next3:
     mov cx, [count]
     ; checks if the value was found
     cmp cx, 9
+    ; strange that it wont check all the letters, maybe im crazy and it does
+    ;   _____ _    _          _   _  _____ ______ 
+    ;  / ____| |  | |   /\   | \ | |/ ____|  ____|
+    ; | |    | |__| |  /  \  |  \| | |  __| |__   
+    ; | |    |  __  | / /\ \ | . ` | | |_ |  __|  
+    ; | |____| |  | |/ ____ \| |\  | |__| | |____ 
+    ;  \_____|_|  |_/_/    \_\_| \_|\_____|______|    
+    ; 
     je INT69pass3
     ; increments the count
     inc cx
@@ -395,7 +403,7 @@ INT83:
     jl endint83cf
     cmp al, 0x7A
     jg endint83cf
-    add al, 0x20
+    sub al, 0x20
     clc
     iret
 ; ********************************* ;

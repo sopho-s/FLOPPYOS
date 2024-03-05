@@ -152,6 +152,11 @@ notfound:
     ret
 parameterdecodestart:
     pop ax
+    mov bx, [parametercount]
+    inc bx
+    mov [parametercount], bx
+    inc di
+    inc di
     push di
 parameterdecode:
     inc di
@@ -219,8 +224,7 @@ nextname:
     mov bx, 8
     sub bx, cx
     add di, bx
-    mov dl, [si]
-    mov [di], dl
+    mov [di], al
     inc si
     dec cx
     jmp nextname
@@ -252,8 +256,7 @@ nextextension:
     mov bx, 11
     sub bx, cx
     add di, bx
-    mov dl, [si]
-    mov [di], dl
+    mov [di], al
     inc si
     dec cx
     jmp nextextension
@@ -269,11 +272,12 @@ endextension:
     dec cx
     jmp endextension
 endfind:
+    dec cx
     mov ah, 3
     mov bx, findname
     int 0x69
     cmp al, 0
-    jne failedfind
+    jne failfind
     push bx
     mov bx, foundfilep1
     mov ah, 2
@@ -295,6 +299,11 @@ endfind:
     ret
 failfind:
     mov bx, failedfind
+    mov ah, 2
+    int 0x42
+    mov ah, 5
+    int 0x42
+    mov bx, findname
     mov ah, 2
     int 0x42
     ret
