@@ -70,6 +70,7 @@ checkcmd:
     mov ax, 0
     mov [i], ax
     mov cx, 0
+    mov [parametercount], cx
     mov ax, [cmds]
     mov ax, cmds
     push ax ; stack {cmds}
