@@ -151,25 +151,33 @@ notfound:
     int 0x42
     ret
 parameterdecodestart:
+    ; pops the unused var off the stack
     pop ax
+    ; increments the parameter count
     mov bx, [parametercount]
     inc bx
     mov [parametercount], bx
+    ; sets up di for reading
     inc di
     inc di
+    ; pushes di to parameter
     push di
 parameterdecode:
+    ; checks if the end has been reached
     inc di
     cmp di, [endpointer]
     je parameterdone
+    ; checks if there is a new variable
     mov dx, [di]
     cmp dx, 0x20
     je addnewparam
     jmp parameterdecode
 addnewparam:
+    ; increments the new parameter count
     mov bx, [parametercount]
     inc bx
     mov [parametercount], bx
+    ; adds the new parameter
     inc di
     push di
     jmp parameterdecode
@@ -218,8 +226,10 @@ nextname:
     mov al, [si]
     cmp al, 0x2e
     je endfilename
+    ; converts the value to its uppercase equivelent if possible
     mov ah, 1
     int 0x83
+    ; puts the new letter in the variable that will store the filename
     mov di, findname
     mov bx, 8
     sub bx, cx
@@ -229,6 +239,7 @@ nextname:
     dec cx
     jmp nextname
 endfilename:
+    ; buffs the name up with spaces to fit the FAT12 file system
     cmp cx, 0
     je extension
     mov di, findname
@@ -250,9 +261,11 @@ nextextension:
     mov al, [si]
     cmp al, 0x2e
     je endextension
+    ; converts the value to its uppercase equivelent if possible
     mov ah, 1
     int 0x83
     mov di, findname
+    ; puts the new letter in the variable that will store the filename
     mov bx, 11
     sub bx, cx
     add di, bx
@@ -261,6 +274,7 @@ nextextension:
     dec cx
     jmp nextextension
 endextension:
+    ; buffs the name up with spaces to fit the FAT12 file system
     cmp cx, 0
     je endfind
     mov di, findname
@@ -272,12 +286,15 @@ endextension:
     dec cx
     jmp endextension
 endfind:
+    ; finds the file
     dec cx
     mov ah, 3
     mov bx, findname
     int 0x69
+    ; if the file was not found or the read was not sucessful then it will display as such
     cmp al, 0
     jne failfind
+    ; display the logical and physical sector of the file
     push bx
     mov bx, foundfilep1
     mov ah, 2
@@ -298,6 +315,7 @@ endfind:
     int 0x42
     ret
 failfind:
+    ; displays the error message
     mov bx, failedfind
     mov ah, 2
     int 0x42
@@ -310,9 +328,13 @@ failfind:
 
 
 badparam:
+    ; displays that the wrong amount of parameters were given
     mov bx, badparameters
     mov ah, 2
     int 0x42
+    ;
+    ; clean up stack here
+    ;
     ret
 
 

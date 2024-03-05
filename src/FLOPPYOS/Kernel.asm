@@ -394,8 +394,8 @@ INT83:
 ; CF = FAIL STATE                   ;
 ;                                   ;
 ; FAIL STATES:                      ;
-; 0 = ALREADY UPPERCASE OR INVALID  ;
-; 1 = SUCCESS                       ;
+; 0 = SUCCESS                       ;
+; 1 = ALREADY UPPERCASE OR INVALID  ;
 ; ********************************* ;
     cmp ah, 1
     jne INT83check2
@@ -407,13 +407,6 @@ INT83:
     clc
     iret
 ; ********************************* ;
-; PRINT STRING|AH=2|INT42           ;
-;                                   ;
-; INPUTS:                           ;
-; BX = STRING POINTER, ENDS WITH 0  ;
-;                                   ;
-; OUTPUTS:                          ;
-; NONE                              ;
 ; ********************************* ;
 INT83check2:
     cmp ah, 2
