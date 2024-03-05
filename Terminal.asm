@@ -27,8 +27,7 @@ inputwait:
     mov di, cx
     add di, [terminalcmdmem]
     mov [di], al
-    ; sets a pointer to the last character in the command
-    mov [generalpoint], di
+    mov [endpointer], di
     inc cx
     ; checks if the user has run out of memory
     mov ax, [terminalcmdsize]
@@ -68,6 +67,8 @@ new:
     jmp bootTerminal
 
 checkcmd:
+    mov ax, 0
+    mov [i], ax
     mov cx, 0
     mov ax, [cmds]
     mov ax, cmds
@@ -77,7 +78,7 @@ command:
     ;   _____ _    _          _   _  _____ ______ 
     ;  / ____| |  | |   /\   | \ | |/ ____|  ____|
     ; | |    | |__| |  /  \  |  \| | |  __| |__   
-    ; | |    |  __  | / /\ \ | . ` | | |_ |  __|  
+    ; | |    |  __  | / /\ \ | . - | | |_ |  __|  
     ; | |____| |  | |/ ____ \| |\  | |__| | |____ 
     ;  \_____|_|  |_/_/    \_\_| \_|\_____|______|    
     ;              
@@ -133,23 +134,41 @@ next:
     push ax
     jmp command
 found:
-    ; if the command is found go to the func table and find which command to execute
+    dec cx
+    mov di, [terminalcmdmem]
+    add di, cx
+    cmp di, [endpointer]
+    jl parameterdecodestart
     pop ax
-    mov bx, cmdfound
-    mov ah, 2
-    int 0x42
-    call functable
-    mov ax, 0
-    mov [i], ax
-    ret
+    jmp parameterdone
+    ; if the command is found go to the func table and find which command to execute
+parameterdone:
+    jmp functable
 notfound:
     ; if the command was not found reset the i value
     mov bx, cmdnotfounderror
     mov ah, 2
     int 0x42
-    mov ax, 0
-    mov [i], ax
     ret
+parameterdecodestart:
+    pop ax
+    push di
+parameterdecode:
+    inc di
+    cmp di, [endpointer]
+    je parameterdone
+    mov dx, [di]
+    cmp dx, 0x20
+    je addnewparam
+    jmp parameterdecode
+addnewparam:
+    mov bx, [parametercount]
+    inc bx
+    mov [parametercount], bx
+    inc di
+    push di
+    jmp parameterdecode
+
 
 functable:
     ; choose which function to excecute
@@ -160,7 +179,6 @@ functable:
     je clear
     cmp cx, 2
     je find
-    ret
     
 
 clear:
@@ -180,6 +198,112 @@ shutdown:
     ret
 
 find:
+    ; checks the parameter count
+    mov cx, 1
+    cmp cx, [parametercount]
+    jne badparam
+    ; gets the parameter and sets the count to 8
+    pop si
+    mov cx, 8
+nextname:
+    ; checks if the file name has ended
+    cmp cx, 0
+    je extension
+    ; checks if there is a "." delimeter and handles it
+    mov al, [si]
+    cmp al, 0x2e
+    je endfilename
+    mov ah, 1
+    int 0x83
+    mov di, findname
+    mov bx, 8
+    sub bx, cx
+    add di, bx
+    mov dl, [si]
+    mov [di], dl
+    inc si
+    dec cx
+    jmp nextname
+endfilename:
+    cmp cx, 0
+    je extension
+    mov di, findname
+    mov bx, 8
+    sub bx, cx
+    add di, bx
+    mov dl, 0x20
+    mov [di], dl
+    dec cx
+    jmp endfilename
+extension:
+    mov cx, 3
+    inc si
+nextextension:
+    ; checks if the file name has ended
+    cmp cx, 0
+    je endfind
+    ; checks if there is a "." delimeter and handles it
+    mov al, [si]
+    cmp al, 0x2e
+    je endextension
+    mov ah, 1
+    int 0x83
+    mov di, findname
+    mov bx, 11
+    sub bx, cx
+    add di, bx
+    mov dl, [si]
+    mov [di], dl
+    inc si
+    dec cx
+    jmp nextextension
+endextension:
+    cmp cx, 0
+    je endfind
+    mov di, findname
+    mov bx, 11
+    sub bx, cx
+    add di, bx
+    mov dl, 0x20
+    mov [di], dl
+    dec cx
+    jmp endextension
+endfind:
+    mov ah, 3
+    mov bx, findname
+    int 0x69
+    cmp al, 0
+    jne failedfind
+    push bx
+    mov bx, foundfilep1
+    mov ah, 2
+    int 0x42
+    pop bx
+    sub bx, 31
+    push bx
+    mov ah, 4
+    int 0x42
+    mov ah, 5
+    int 0x42
+    mov bx, foundfilep2
+    mov ah, 2
+    int 0x42
+    pop bx
+    mov ah, 4
+    add bx, 31
+    int 0x42
+    ret
+failfind:
+    mov bx, failedfind
+    mov ah, 2
+    int 0x42
+    ret
+
+
+badparam:
+    mov bx, badparameters
+    mov ah, 2
+    int 0x42
     ret
 
 
@@ -192,9 +316,15 @@ generalmemsize dw 0x6fff
 terminalstartline db ">", 0
 memerror db "Out of memory", 0
 cmdnotfounderror db "Command not found", 0
-cmdfound db "Command found", 0
+badparameters db "Bad parameters for entered function", 0
+failedfind db "Failed to find specified file", 0
+foundfilep1 db "Found file, it is located at the logical sector: ", 0
+foundfilep2 db "And is located at the physical sector: ", 0
 testmsg db "Test", 0
-generalpoint dw 0
+findname db "TERMINALBIN"
+parameterpoint dw 0
+endpointer dw 0
+parametercount dw 0
 cmdam db 3
 cmds db "shutdown", "clear", "find"
 cmdsize dw 8, 5, 4
@@ -205,5 +335,3 @@ address dw 0
 testval dw 0
 tempnum dw 0
 quot dw 0
-times 768-($-$$) db 0x00
-dw 0x99

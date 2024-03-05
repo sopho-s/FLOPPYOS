@@ -33,6 +33,9 @@ setupint:
     mov di, INT42
     mov ES:[0x42*4], di  
     mov ES:[0x42*4+2], CS
+    mov di, INT83
+    mov ES:[0x83*4], di  
+    mov ES:[0x83*4+2], CS
     sti
     ret
 
@@ -362,6 +365,56 @@ INT42check5:
     iret
 endint42:
     iret
+
+
+; ********************************* ;
+; INT 83                            ;
+; STRING AND CHAR                   ;
+; ********************************* ;
+
+INT83:
+    cmp ah, 0
+    je endint83
+; ********************************* ;
+; CAPITALISE CHAR|AH=1|INT42        ;
+;                                   ;
+; INPUTS:                           ;
+; AL = CHAR                         ;
+;                                   ;
+; OUTPUTS:                          ;
+; AL = CAPITALISED CHAR             ;
+; CF = FAIL STATE                   ;
+;                                   ;
+; FAIL STATES:                      ;
+; 0 = ALREADY UPPERCASE OR INVALID  ;
+; 1 = SUCCESS                       ;
+; ********************************* ;
+    cmp ah, 1
+    jne INT83check2
+    cmp al, 0x61
+    jl endint83cf
+    cmp al, 0x7A
+    jg endint83cf
+    add al, 0x20
+    clc
+    iret
+; ********************************* ;
+; PRINT STRING|AH=2|INT42           ;
+;                                   ;
+; INPUTS:                           ;
+; BX = STRING POINTER, ENDS WITH 0  ;
+;                                   ;
+; OUTPUTS:                          ;
+; NONE                              ;
+; ********************************* ;
+INT83check2:
+    cmp ah, 2
+    jne endint83
+endint83cf:
+    stc
+endint83:
+    iret
+
 
 Terminalerr:
     ; shows terminal error
