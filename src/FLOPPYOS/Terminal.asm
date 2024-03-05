@@ -199,6 +199,10 @@ clear:
     mov al, 0x03
     mov ah, 0x00
     int 0x10
+    mov ax, [parametercount]
+    mov dx, 2
+    mul dx
+    add sp, ax
     ret
 
 shutdown:
@@ -208,6 +212,10 @@ shutdown:
     mov bx, 0x01
     mov cx, 0x03
     int 0x15
+    mov ax, [parametercount]
+    mov dx, 2
+    mul dx
+    add sp, ax
     ret
 
 find:
@@ -332,9 +340,10 @@ badparam:
     mov bx, badparameters
     mov ah, 2
     int 0x42
-    ;
-    ; clean up stack here
-    ;
+    mov ax, [parametercount]
+    mov dx, 2
+    mul dx
+    add sp, ax
     ret
 
 
