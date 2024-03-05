@@ -33,6 +33,9 @@ setupint:
     mov di, INT42
     mov ES:[0x42*4], di  
     mov ES:[0x42*4+2], CS
+    mov di, INT83
+    mov ES:[0x83*4], di  
+    mov ES:[0x83*4+2], CS
     sti
     ret
 
@@ -171,6 +174,14 @@ INT69next3:
     mov cx, [count]
     ; checks if the value was found
     cmp cx, 9
+    ; strange that it wont check all the letters, maybe im crazy and it does
+    ;   _____ _    _          _   _  _____ ______ 
+    ;  / ____| |  | |   /\   | \ | |/ ____|  ____|
+    ; | |    | |__| |  /  \  |  \| | |  __| |__   
+    ; | |    |  __  | / /\ \ | . ` | | |_ |  __|  
+    ; | |____| |  | |/ ____ \| |\  | |__| | |____ 
+    ;  \_____|_|  |_/_/    \_\_| \_|\_____|______|    
+    ; 
     je INT69pass3
     ; increments the count
     inc cx
@@ -362,6 +373,49 @@ INT42check5:
     iret
 endint42:
     iret
+
+
+; ********************************* ;
+; INT 83                            ;
+; STRING AND CHAR                   ;
+; ********************************* ;
+
+INT83:
+    cmp ah, 0
+    je endint83
+; ********************************* ;
+; CAPITALISE CHAR|AH=1|INT42        ;
+;                                   ;
+; INPUTS:                           ;
+; AL = CHAR                         ;
+;                                   ;
+; OUTPUTS:                          ;
+; AL = CAPITALISED CHAR             ;
+; CF = FAIL STATE                   ;
+;                                   ;
+; FAIL STATES:                      ;
+; 0 = SUCCESS                       ;
+; 1 = ALREADY UPPERCASE OR INVALID  ;
+; ********************************* ;
+    cmp ah, 1
+    jne INT83check2
+    cmp al, 0x61
+    jl endint83cf
+    cmp al, 0x7A
+    jg endint83cf
+    sub al, 0x20
+    clc
+    iret
+; ********************************* ;
+; ********************************* ;
+INT83check2:
+    cmp ah, 2
+    jne endint83
+endint83cf:
+    stc
+endint83:
+    iret
+
 
 Terminalerr:
     ; shows terminal error

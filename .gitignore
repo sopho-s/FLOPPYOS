@@ -5,7 +5,6 @@
 *.iso
 *.txt
 *.pub
-*
 Padding.asm
 burn.sh
 Boot
