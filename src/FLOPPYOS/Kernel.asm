@@ -36,6 +36,9 @@ setupint:
     mov di, INT83
     mov ES:[0x83*4], di  
     mov ES:[0x83*4+2], CS
+    mov di, INT96
+    mov ES:[0x96*4], di  
+    mov ES:[0x96*4+2], CS
     sti
     ret
 
@@ -414,6 +417,34 @@ INT83check2:
 endint83cf:
     stc
 endint83:
+    iret
+
+INT96:
+    cmp ah, 0
+    je endint96
+; ***************************************** ;
+; LOAD EXTERNAL PROGRAM FROM FILE|AH=1|INT96;
+;                                           ;
+; INPUTS:                                   ;
+; BX = PHISICAL SECTOR                      ;
+; CX = SECTOR AMOUNT                        ;
+;                                           ;
+; OUTPUTS:                                  ;
+; AL = FAIL STATE                           ;
+;                                           ;
+; FAILSTATES:                               ;
+; 0 = SUCCESS                               ;
+; 1 = FAILED TO READ SECTOR                 ;
+; ***************************************** ;
+    cmp ah, 1
+    jne endint96
+    mov dx, 0x9000
+    mov ah, 1
+    int 0x69
+    mov dx, 0x9000
+    mov [bp + 2], dx
+    iret
+endint96:
     iret
 
 

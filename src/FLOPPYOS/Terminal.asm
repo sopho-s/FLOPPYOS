@@ -224,77 +224,8 @@ find:
     mov cx, 1
     cmp cx, [parametercount]
     jne badparam
-    ; gets the parameter and sets the count to 8
     pop si
-    mov cx, 8
-nextname:
-    ; checks if the file name has ended
-    cmp cx, 0
-    je extension
-    ; checks if there is a "." delimeter and handles it
-    mov al, [si]
-    cmp al, 0x2e
-    je endfilename
-    ; converts the value to its uppercase equivelent if possible
-    mov ah, 1
-    int 0x83
-    ; puts the new letter in the variable that will store the filename
-    mov di, findname
-    mov bx, 8
-    sub bx, cx
-    add di, bx
-    mov [di], al
-    inc si
-    dec cx
-    jmp nextname
-endfilename:
-    ; buffs the name up with spaces to fit the FAT12 file system
-    cmp cx, 0
-    je extension
-    mov di, findname
-    mov bx, 8
-    sub bx, cx
-    add di, bx
-    mov dl, 0x20
-    mov [di], dl
-    dec cx
-    jmp endfilename
-extension:
-    mov cx, 3
-    inc si
-nextextension:
-    ; checks if the file name has ended
-    cmp cx, 0
-    je endfind
-    ; checks if there is a "." delimeter and handles it
-    mov al, [si]
-    cmp al, 0x2e
-    je endextension
-    ; converts the value to its uppercase equivelent if possible
-    mov ah, 1
-    int 0x83
-    mov di, findname
-    ; puts the new letter in the variable that will store the filename
-    mov bx, 11
-    sub bx, cx
-    add di, bx
-    mov [di], al
-    inc si
-    dec cx
-    jmp nextextension
-endextension:
-    ; buffs the name up with spaces to fit the FAT12 file system
-    cmp cx, 0
-    je endfind
-    mov di, findname
-    mov bx, 11
-    sub bx, cx
-    add di, bx
-    mov dl, 0x20
-    mov [di], dl
-    dec cx
-    jmp endextension
-endfind:
+    call formatfile
     ; finds the file
     dec cx
     mov ah, 3
@@ -335,6 +266,82 @@ failfind:
     int 0x42
     ret
 
+
+formatfile:
+    ; gets the parameter and sets the count to 8
+    mov cx, 8
+nextname:
+    ; checks if the file name has ended
+    cmp cx, 0
+    je extension
+    ; checks if there is a "." delimeter and handles it
+    mov al, [si]
+    cmp al, 0x2e
+    je endfilename
+    ; converts the value to its uppercase equivelent if possible
+    mov ah, 1
+    int 0x83
+    ; puts the new letter in the variable that will store the filename
+    mov di, findname
+    mov bx, 8
+    sub bx, cx
+    add di, bx
+    mov [di], al
+    inc si
+    dec cx
+    jmp nextname
+endfilename:
+    ; buffs the name up with spaces to fit the FAT12 file system
+    cmp cx, 0
+    je extension
+    mov di, findname
+    mov bx, 8
+    sub bx, cx
+    add di, bx
+    mov dl, 0x20
+    mov [di], dl
+    dec cx
+    jmp endfilename
+extension:
+    mov cx, 3
+    inc si
+nextextension:
+    ; checks if the file name has ended
+    cmp cx, 0
+    je endformat
+    ; checks if there is a "." delimeter and handles it
+    mov al, [si]
+    cmp al, 0x2e
+    je endextension
+    ; converts the value to its uppercase equivelent if possible
+    mov ah, 1
+    int 0x83
+    mov di, findname
+    ; puts the new letter in the variable that will store the filename
+    mov bx, 11
+    sub bx, cx
+    add di, bx
+    mov [di], al
+    inc si
+    dec cx
+    jmp nextextension
+endextension:
+    ; buffs the name up with spaces to fit the FAT12 file system
+    cmp cx, 0
+    je endformat
+    mov di, findname
+    mov bx, 11
+    sub bx, cx
+    add di, bx
+    mov dl, 0x20
+    mov [di], dl
+    dec cx
+    jmp endextension
+endformat:
+    ret
+    
+open:
+    ret
 
 badparam:
     ; displays that the wrong amount of parameters were given
