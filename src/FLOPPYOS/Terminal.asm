@@ -181,6 +181,8 @@ functable:
     je find
     cmp cx, 3
     je open
+    cmp cx, 4
+    je restart
     
 
 clear:
@@ -361,6 +363,13 @@ open:
     sub sp, 2
     int 0x96
 
+restart:; checks the parameter count
+    mov cx, 0
+    cmp cx, [parametercount]
+    jne badparam
+    mov sp, ss
+    jmp 0xffff:0
+
 badparam:
     ; displays that the wrong amount of parameters were given
     mov bx, badparameters
@@ -391,10 +400,10 @@ findname db "TERMINALBIN"
 parameterpoint dw 0
 endpointer dw 0
 parametercount dw 0
-cmdam db 4
-cmds db "shutdown", "clear", "find", "open"
-cmdsize dw 8, 5, 4, 4
-cmdcumsize dw 8, 13, 17, 21
+cmdam db 5
+cmds db "shutdown", "clear", "find", "open", "restart"
+cmdsize dw 8, 5, 4, 4, 7
+cmdcumsize dw 8, 13, 17, 21, 28
 i dw 0
 count dw 0
 address dw 0
