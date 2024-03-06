@@ -61,11 +61,9 @@ new:
     jmp bootTerminal
 
 checkcmd:
-    mov ax, 0
-    mov [i], ax
     mov cx, 0
+    mov [i], cx
     mov [parametercount], cx
-    mov ax, [cmds]
     mov ax, cmds
     push ax ; stack {cmds}
 command:
@@ -83,9 +81,8 @@ command:
     mul bx
     mov di, cmdsize
     add di, ax
-    mov bx, [di]
     ; finds the size checked so far
-    cmp bx, cx
+    cmp word [di], cx
     jle found
     ; checks that the currently compared char matched
     mov di, 0
@@ -96,7 +93,7 @@ command:
     ; loads in the command char
     pop bx ; stack {}
     push ax ; stack {current letter entered}
-    pop ax ; stact {}
+    pop ax 
     mov ah, [bx]
     inc bx
     push bx ; stack {cmds}
@@ -149,12 +146,9 @@ parameterdecodestart:
     ; pops the unused var off the stack
     pop ax
     ; increments the parameter count
-    mov bx, [parametercount]
-    inc bx
-    mov [parametercount], bx
+    mov word [parametercount], 1
     ; sets up di for reading
-    inc di
-    inc di
+    add di, 2
     ; pushes di to parameter
     push di
 parameterdecode:
@@ -169,9 +163,7 @@ parameterdecode:
     jmp parameterdecode
 addnewparam:
     ; increments the new parameter count
-    mov bx, [parametercount]
-    inc bx
-    mov [parametercount], bx
+    mov word [parametercount], 1
     ; adds the new parameter
     inc di
     push di
@@ -272,6 +264,11 @@ nextname:
     ; checks if the file name has ended
     cmp cx, 0
     je extension
+    ; checks if file has no extension
+    mov ax, [endpointer]
+    add ax, 1
+    cmp si, ax
+    jge endfilename
     ; checks if there is a "." delimeter and handles it
     mov al, [si]
     cmp al, 0x2e
