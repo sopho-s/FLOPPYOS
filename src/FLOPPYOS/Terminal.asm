@@ -1,12 +1,6 @@
 bits 16
 
 org 0x9000
-startup:
-    mov bx, startmessage
-    mov ah, 2
-    int 0x42
-    mov ah, 5
-    int 0x42
 bootTerminal:
     ; starts terminal and intitialses the terminal memory store
     mov cx, 0
@@ -193,6 +187,8 @@ functable:
     je clear
     cmp cx, 2
     je find
+    cmp cx, 3
+    je open
     
 
 clear:
@@ -256,12 +252,14 @@ find:
     ret
 failfind:
     ; displays the error message
-    mov bx, failedfind
+    cmp al, 1
+    jne failfind2
+    mov bx, failedfind1
     mov ah, 2
     int 0x42
-    mov ah, 5
-    int 0x42
-    mov bx, findname
+    ret
+failfind2:
+    mov bx, failedfind2
     mov ah, 2
     int 0x42
     ret
@@ -341,7 +339,24 @@ endformat:
     ret
     
 open:
-    ret
+    ; checks the parameter count
+    mov cx, 1
+    cmp cx, [parametercount]
+    jne badparam
+    pop si
+    call formatfile
+    ; finds the file
+    dec cx
+    mov ah, 3
+    mov bx, findname
+    int 0x69
+    ; if the file was not found or the read was not sucessful then it will display as such
+    cmp al, 0
+    jne failfind
+    mov ah, 1
+    mov cx, 1
+    sub sp, 2
+    int 0x96
 
 badparam:
     ; displays that the wrong amount of parameters were given
@@ -356,7 +371,6 @@ badparam:
 
 
 ; data
-startmessage db "Terminal started", 0
 terminalcmdmem dw 0x8800
 terminalcmdsize dw 0x199
 generalmem dw 0x9900
@@ -365,7 +379,8 @@ terminalstartline db ">", 0
 memerror db "Out of memory", 0
 cmdnotfounderror db "Command not found", 0
 badparameters db "Bad parameters for entered function", 0
-failedfind db "Failed to find specified file", 0
+failedfind2 db "Failed to find specified file", 0
+failedfind1 db "Failed to read sector", 0
 foundfilep1 db "Found file, it is located at the logical sector: ", 0
 foundfilep2 db "And is located at the physical sector: ", 0
 testmsg db "Test", 0
@@ -373,10 +388,10 @@ findname db "TERMINALBIN"
 parameterpoint dw 0
 endpointer dw 0
 parametercount dw 0
-cmdam db 3
-cmds db "shutdown", "clear", "find"
-cmdsize dw 8, 5, 4
-cmdcumsize dw 8, 13, 17
+cmdam db 4
+cmds db "shutdown", "clear", "find", "open"
+cmdsize dw 8, 5, 4, 4
+cmdcumsize dw 8, 13, 17, 21
 i dw 0
 count dw 0
 address dw 0

@@ -158,6 +158,7 @@ INT69check3:
     ; finds where the file is located
     mov ax, 0
     mov [count], ax
+    mov [totalexp], ax
     pop bx
     mov cx, bx
     mov ax, 0x4200
@@ -437,13 +438,34 @@ INT96:
 ; 1 = FAILED TO READ SECTOR                 ;
 ; ***************************************** ;
     cmp ah, 1
-    jne endint96
+    jne INT96check2
     mov dx, 0x9000
     mov ah, 1
     int 0x69
-    mov dx, 0x9000
-    mov [bp + 2], dx
-    iret
+    mov sp, ss
+    jmp 0x9000
+; ***************************** ;
+; EXIT TO TERMINAL|AH=2|INT96   ;
+;                               ;
+; INPUTS:                       ;
+; NONE                          ;
+;                               ;
+; OUTPUTS:                      ;
+; AL = FAIL STATE               ;
+;                               ;
+; FAILSTATES:                   ;
+; 0 = SUCCESS                   ;
+; 1 = FAILED TO READ SECTOR     ;
+; ***************************** ;
+INT96check2:
+    cmp ah, 2
+    jne endint96
+    mov ah, 2
+    mov bx, terminalname
+    mov cx, 0x9000
+    int 0x69
+    mov sp, ss
+    jmp 0x9000
 endint96:
     iret
 
