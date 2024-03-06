@@ -4,7 +4,7 @@ FLOPPYOS is an operating system built to run on a floppy disk using the FAT12 fi
 
 ## Current features
 
-Not much currently just a terminal with 3 commands
+Not much currently just a terminal with 4 commands
 
 ### Terminal
 
@@ -13,12 +13,12 @@ Currently supported commands:
 - Clear: clears the terminal
 - Shutdown: shuts the machine down
 - Find: finds a file on the computer and prints its logical and physical address/sector
+- Open: opens the file specified and runs it
 
 ### That's it, currently
 ## Plans
 
 - A large array of commands for my terminal
-- External application support
 - Support for other connected disks to allow more programs to be loaded
 - Networking
 - GUI
