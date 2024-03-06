@@ -77,13 +77,13 @@ INT69:
     mov ax, [sectorread]
     ; calculates the CHS
     xor dx, dx
-    div WORD [sectorspertrack]
+    div word [sectorspertrack]
     inc dl
-    mov BYTE [sectortoread], dl
+    mov byte [sectortoread], dl
     xor dx, dx
-    div WORD [headspercylinder]
-    mov BYTE [headtoread], dl
-    mov BYTE [tracktoread], al
+    div word [headspercylinder]
+    mov byte [headtoread], dl
+    mov byte [tracktoread], al
     ; resets the disk
     mov ah, 0
     mov dl, 0
@@ -163,8 +163,6 @@ INT69check3:
     mov cx, bx
     mov ax, 0x4200
     jmp INT69next3
-INT69next3frompush:
-    pop ax
 INT69next3:
     ; checks if the two characters match
     mov di, ax
@@ -174,34 +172,12 @@ INT69next3:
     jne INT69fail3
     ; increments both pointers
     inc ax
-    push cx
-    mov cx, [count]
     ; checks if the value was found
-    cmp cx, 9
-    ; strange that it wont check all the letters, maybe im crazy and it does
-    ;   _____ _    _          _   _  _____ ______ 
-    ;  / ____| |  | |   /\   | \ | |/ ____|  ____|
-    ; | |    | |__| |  /  \  |  \| | |  __| |__   
-    ; | |    |  __  | / /\ \ | . ` | | |_ |  __|  
-    ; | |____| |  | |/ ____ \| |\  | |__| | |____ 
-    ;  \_____|_|  |_/_/    \_\_| \_|\_____|______|    
-    ; 
+    cmp word [count], 9
     je INT69pass3
     ; increments the count
-    inc cx
-    mov [count], cx
-    ; needs to change so it can do all the directories but holds the current amount of directories explored
-    ;   _____ _    _          _   _  _____ ______ 
-    ;  / ____| |  | |   /\   | \ | |/ ____|  ____|
-    ; | |    | |__| |  /  \  |  \| | |  __| |__   
-    ; | |    |  __  | / /\ \ | . ` | | |_ |  __|  
-    ; | |____| |  | |/ ____ \| |\  | |__| | |____ 
-    ;  \_____|_|  |_/_/    \_\_| \_|\_____|______|    
-    ;                                   
-    mov cx, [totalexp]
-    inc cx
-    mov [totalexp], cx
-    pop cx
+    add word [count], 1                              
+    add word [totalexp], 1
     ; increments the name of the directory
     mov cx, bx
     add cx, [count]
@@ -210,25 +186,17 @@ INT69fail3:
     ; increments the currently compared character
     inc ax
     mov cx, bx
-    push cx
     ; resets count
-    xor cx, cx
-    mov [count], cx
-    pop cx
-    push ax
+    mov word [count], 0
     ; increments the count of the total searched
-    mov ax, [totalexp]
-    inc ax
-    mov [totalexp], ax
-    cmp ax, 0x200
-    jl INT69next3frompush
-    pop ax
-    pop ax
+    add word [totalexp], 1
+    cmp word [totalexp], 0x1c00
+    jl INT69next3
+    sub sp, 4
     mov al, 2
     iret
 INT69pass3:
     ; finds the physical sector and loads it into memory at the specified location
-    pop cx
     pop dx
     add ax, 16
     mov di, ax

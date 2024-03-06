@@ -3,10 +3,6 @@ bits 16
 org		0x7c00	
 
 start:
-    ; sets variables to their error state
-    mov bl, 0
-    mov [0x0000], bl
-
     ; print startup message
     mov ah, 0x0e 
     mov bx, startmsg
