@@ -307,10 +307,14 @@ nextextension:
     ; checks if the file name has ended
     cmp cx, 0
     je endformat
-    ; checks if there is a "." delimeter and handles it
     mov al, [si]
-    cmp al, 0x2e
-    je endextension
+    push ax
+    ; checks if the end of the extension has been reached
+    mov ax, [endpointer]
+    add ax, 1
+    cmp si, ax
+    jge pushendextension
+    pop ax
     ; converts the value to its uppercase equivelent if possible
     mov ah, 1
     int 0x83
@@ -323,6 +327,8 @@ nextextension:
     inc si
     dec cx
     jmp nextextension
+pushendextension:
+    pop ax
 endextension:
     ; buffs the name up with spaces to fit the FAT12 file system
     cmp cx, 0
