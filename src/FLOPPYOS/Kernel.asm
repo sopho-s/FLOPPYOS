@@ -437,6 +437,56 @@ INT96check2:
 endint96:
     iret
 
+INT80:
+    cmp ah, 0
+    je endint80
+; ***************************** ;
+; PROTECT MEMORY|AH=1|INT96     ;
+;                               ;
+; INPUTS:                       ;
+; BX = MEMORY LOCATION START    ;
+; CX = MEMORY SIZE              ;
+;                               ;
+; OUTPUTS:                      ;
+; CX = MEMORY KEY               ;
+; AL = FAIL STATE               ;
+;                               ;
+; FAILSTATES:                   ;
+; 0 = SUCCESS                   ;
+; 1 = FAILED TO PROTECT MEMORY  ;
+; ***************************** ;
+    cmp ah, 1
+    jne INT80check2
+    mov dx, 0x9000
+    mov ah, 1
+    int 0x69
+    mov sp, ss
+    jmp 0x9000
+; ***************************** ;
+; EXIT TO TERMINAL|AH=2|INT96   ;
+;                               ;
+; INPUTS:                       ;
+; NONE                          ;
+;                               ;
+; OUTPUTS:                      ;
+; AL = FAIL STATE               ;
+;                               ;
+; FAILSTATES:                   ;
+; 0 = SUCCESS                   ;
+; 1 = FAILED TO READ SECTOR     ;
+; ***************************** ;
+INT80check2:
+    cmp ah, 2
+    jne endint80
+    mov ah, 2
+    mov bx, terminalname
+    mov cx, 0x9000
+    int 0x69
+    mov sp, ss
+    jmp 0x9000
+endint80:
+    iret
+
 
 Terminalerr:
     ; shows terminal error
