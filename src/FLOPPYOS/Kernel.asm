@@ -36,6 +36,9 @@ setupint:
     mov di, INT83
     mov ES:[0x83*4], di  
     mov ES:[0x83*4+2], CS
+    mov di, INT96
+    mov ES:[0x96*4], di  
+    mov ES:[0x96*4+2], CS
     sti
     ret
 
@@ -155,6 +158,7 @@ INT69check3:
     ; finds where the file is located
     mov ax, 0
     mov [count], ax
+    mov [totalexp], ax
     pop bx
     mov cx, bx
     mov ax, 0x4200
@@ -414,6 +418,55 @@ INT83check2:
 endint83cf:
     stc
 endint83:
+    iret
+
+INT96:
+    cmp ah, 0
+    je endint96
+; ***************************************** ;
+; LOAD EXTERNAL PROGRAM FROM FILE|AH=1|INT96;
+;                                           ;
+; INPUTS:                                   ;
+; BX = PHISICAL SECTOR                      ;
+; CX = SECTOR AMOUNT                        ;
+;                                           ;
+; OUTPUTS:                                  ;
+; AL = FAIL STATE                           ;
+;                                           ;
+; FAILSTATES:                               ;
+; 0 = SUCCESS                               ;
+; 1 = FAILED TO READ SECTOR                 ;
+; ***************************************** ;
+    cmp ah, 1
+    jne INT96check2
+    mov dx, 0x9000
+    mov ah, 1
+    int 0x69
+    mov sp, ss
+    jmp 0x9000
+; ***************************** ;
+; EXIT TO TERMINAL|AH=2|INT96   ;
+;                               ;
+; INPUTS:                       ;
+; NONE                          ;
+;                               ;
+; OUTPUTS:                      ;
+; AL = FAIL STATE               ;
+;                               ;
+; FAILSTATES:                   ;
+; 0 = SUCCESS                   ;
+; 1 = FAILED TO READ SECTOR     ;
+; ***************************** ;
+INT96check2:
+    cmp ah, 2
+    jne endint96
+    mov ah, 2
+    mov bx, terminalname
+    mov cx, 0x9000
+    int 0x69
+    mov sp, ss
+    jmp 0x9000
+endint96:
     iret
 
 

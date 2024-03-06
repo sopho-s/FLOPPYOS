@@ -1,12 +1,6 @@
 bits 16
 
 org 0x9000
-startup:
-    mov bx, startmessage
-    mov ah, 2
-    int 0x42
-    mov ah, 5
-    int 0x42
 bootTerminal:
     ; starts terminal and intitialses the terminal memory store
     mov cx, 0
@@ -193,6 +187,8 @@ functable:
     je clear
     cmp cx, 2
     je find
+    cmp cx, 3
+    je open
     
 
 clear:
@@ -224,8 +220,53 @@ find:
     mov cx, 1
     cmp cx, [parametercount]
     jne badparam
-    ; gets the parameter and sets the count to 8
     pop si
+    call formatfile
+    ; finds the file
+    dec cx
+    mov ah, 3
+    mov bx, findname
+    int 0x69
+    ; if the file was not found or the read was not sucessful then it will display as such
+    cmp al, 0
+    jne failfind
+    ; display the logical and physical sector of the file
+    push bx
+    mov bx, foundfilep1
+    mov ah, 2
+    int 0x42
+    pop bx
+    sub bx, 31
+    push bx
+    mov ah, 4
+    int 0x42
+    mov ah, 5
+    int 0x42
+    mov bx, foundfilep2
+    mov ah, 2
+    int 0x42
+    pop bx
+    mov ah, 4
+    add bx, 31
+    int 0x42
+    ret
+failfind:
+    ; displays the error message
+    cmp al, 1
+    jne failfind2
+    mov bx, failedfind1
+    mov ah, 2
+    int 0x42
+    ret
+failfind2:
+    mov bx, failedfind2
+    mov ah, 2
+    int 0x42
+    ret
+
+
+formatfile:
+    ; gets the parameter and sets the count to 8
     mov cx, 8
 nextname:
     ; checks if the file name has ended
@@ -265,11 +306,15 @@ extension:
 nextextension:
     ; checks if the file name has ended
     cmp cx, 0
-    je endfind
-    ; checks if there is a "." delimeter and handles it
+    je endformat
     mov al, [si]
-    cmp al, 0x2e
-    je endextension
+    push ax
+    ; checks if the end of the extension has been reached
+    mov ax, [endpointer]
+    add ax, 1
+    cmp si, ax
+    jge pushendextension
+    pop ax
     ; converts the value to its uppercase equivelent if possible
     mov ah, 1
     int 0x83
@@ -282,10 +327,12 @@ nextextension:
     inc si
     dec cx
     jmp nextextension
+pushendextension:
+    pop ax
 endextension:
     ; buffs the name up with spaces to fit the FAT12 file system
     cmp cx, 0
-    je endfind
+    je endformat
     mov di, findname
     mov bx, 11
     sub bx, cx
@@ -294,7 +341,16 @@ endextension:
     mov [di], dl
     dec cx
     jmp endextension
-endfind:
+endformat:
+    ret
+    
+open:
+    ; checks the parameter count
+    mov cx, 1
+    cmp cx, [parametercount]
+    jne badparam
+    pop si
+    call formatfile
     ; finds the file
     dec cx
     mov ah, 3
@@ -303,38 +359,10 @@ endfind:
     ; if the file was not found or the read was not sucessful then it will display as such
     cmp al, 0
     jne failfind
-    ; display the logical and physical sector of the file
-    push bx
-    mov bx, foundfilep1
-    mov ah, 2
-    int 0x42
-    pop bx
-    sub bx, 31
-    push bx
-    mov ah, 4
-    int 0x42
-    mov ah, 5
-    int 0x42
-    mov bx, foundfilep2
-    mov ah, 2
-    int 0x42
-    pop bx
-    mov ah, 4
-    add bx, 31
-    int 0x42
-    ret
-failfind:
-    ; displays the error message
-    mov bx, failedfind
-    mov ah, 2
-    int 0x42
-    mov ah, 5
-    int 0x42
-    mov bx, findname
-    mov ah, 2
-    int 0x42
-    ret
-
+    mov ah, 1
+    mov cx, 1
+    sub sp, 2
+    int 0x96
 
 badparam:
     ; displays that the wrong amount of parameters were given
@@ -349,7 +377,6 @@ badparam:
 
 
 ; data
-startmessage db "Terminal started", 0
 terminalcmdmem dw 0x8800
 terminalcmdsize dw 0x199
 generalmem dw 0x9900
@@ -358,7 +385,8 @@ terminalstartline db ">", 0
 memerror db "Out of memory", 0
 cmdnotfounderror db "Command not found", 0
 badparameters db "Bad parameters for entered function", 0
-failedfind db "Failed to find specified file", 0
+failedfind2 db "Failed to find specified file", 0
+failedfind1 db "Failed to read sector", 0
 foundfilep1 db "Found file, it is located at the logical sector: ", 0
 foundfilep2 db "And is located at the physical sector: ", 0
 testmsg db "Test", 0
@@ -366,10 +394,10 @@ findname db "TERMINALBIN"
 parameterpoint dw 0
 endpointer dw 0
 parametercount dw 0
-cmdam db 3
-cmds db "shutdown", "clear", "find"
-cmdsize dw 8, 5, 4
-cmdcumsize dw 8, 13, 17
+cmdam db 4
+cmds db "shutdown", "clear", "find", "open"
+cmdsize dw 8, 5, 4, 4
+cmdcumsize dw 8, 13, 17, 21
 i dw 0
 count dw 0
 address dw 0
