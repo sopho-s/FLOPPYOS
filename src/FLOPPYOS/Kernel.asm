@@ -122,7 +122,7 @@ INT69check2:
     jne INT69check3
     mov ah, 3
     int 0x69
-    mov cx, 2
+    mov cx, 3
     mov ah, 1
     int 0x69
     iret

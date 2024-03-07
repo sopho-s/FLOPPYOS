@@ -383,30 +383,36 @@ datetime:
     mov ah, 2
     int 0x1a
     jc faileddatetime
-    push cx
-    mov bl, ch
-    xor bh, bh
-    and bl, 11110000b
+    mov al, ch
+    xor ah, ah
+    push ax
+    shr al, 4
+    mov bx, 10
+    mul bx
+    mov bx, ax
+    pop ax
+    and ax, 00001111b
+    add bx, ax
     mov ah, 4
     int 0x42
-    pop cx
-    push cx
-    ;mov bl, ch
-    ;xor bh, bh
-    ;and bl, 00001111b
-    ;mov ah, 3
-    ;int 0x42
-    ;mov al, 0x3a
-    ;mov ah, 1
-    ;int 0x42
-
-    pop cx
-    mov bl, cl
-    xor bh, bh
-    ;sub bx, 30
-    mov ah, 4
+    mov al, 0x3a
+    mov ah, 1
     int 0x42
 
+    mov ah, 2
+    int 0x1a
+    mov al, cl
+    xor ah, ah
+    push ax
+    shr al, 4
+    mov bx, 10
+    mul bx
+    mov bx, ax
+    pop ax
+    and ax, 00001111b
+    add bx, ax
+    mov ah, 4
+    int 0x42
     ret
 faileddatetime:
     mov bx, faileddt
