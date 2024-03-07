@@ -16,6 +16,7 @@ Currently supported commands:
 - open: opens the file specified and runs it
 - restart: performs a warm restart
 - datetime: outputs the date time
+- colour: changes the colour of the text
 
 ### That's it, currently
 ## Plans
