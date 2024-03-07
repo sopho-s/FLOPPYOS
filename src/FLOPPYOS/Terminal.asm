@@ -187,6 +187,8 @@ functable:
     je datetime
     cmp cx, 6
     je colour
+    cmp cx, 7
+    je help
 
 clear:
     ; clears the screen
@@ -514,6 +516,24 @@ foundcolour:
     int 0x42
     ret
 
+help:
+    mov bx, helptext1
+    mov ah, 2
+    int 0x42
+    mov bx, helptext2
+    mov ah, 2
+    int 0x42
+    mov bx, helptext3
+    mov ah, 2
+    int 0x42
+    mov bx, helptext4
+    mov ah, 2
+    int 0x42
+    mov bx, helptext5
+    mov ah, 2
+    int 0x42
+    ret
+
 
 badparam:
     ; displays that the wrong amount of parameters were given
@@ -547,10 +567,10 @@ nocolour db "Failed to find specified colour", 0
 parameterpoint dw 0
 endpointer dw 0
 parametercount dw 0
-cmdam db 7
-cmds db "shutdown", "clear", "find", "open", "restart", "datetime", "colour"
-cmdsize dw 8, 5, 4, 4, 7, 8, 6
-cmdcumsize dw 8, 13, 17, 21, 28, 36, 42
+cmdam db 8
+cmds db "shutdown", "clear", "find", "open", "restart", "datetime", "colour", "help"
+cmdsize dw 8, 5, 4, 4, 7, 8, 6, 4
+cmdcumsize dw 8, 13, 17, 21, 28, 36, 42, 46
 colours db "BLACK", 1, "BLUE", 1, "GREEN", 1, "CYAN", 1, "RED", 1, "MAGENTA", 1, "BROWN", 1, "LIGHTGREY", 1, "DARKGREY", 1, "LIGHTBLUE", 1, "LIGHTGREEN", 1, "LIGHTCYAN", 1, "LIGHTRED", 1, "LIGHTMAGENTA", 1, "YELLOW", 1, "WHITE", 0 
 i dw 0
 count dw 0
@@ -558,3 +578,8 @@ address dw 0
 testval dw 0
 tempnum dw 0
 quot dw 0
+helptext1 db "clear: clears the terminal", 0x0A, 0x0D, "shutdown: shuts the computer down", 0x0A, 0x0D, 0
+helptext2 db "find {filename}: finds a file on the computer and prints its logical and physical sector", 0x0A, 0x0D, 0
+helptext3 db "open {filename}: opens the file specified and runs it", 0x0A, 0x0D, "restart: performs a warm restart", 0x0A, 0x0D, 0
+helptext4 db "datetime: outputs the date time in a 'D-M-Y H:M' format", 0x0A, 0x0D, 0
+helptext5 db "colour {colour}: changes all future text specified colour", 0

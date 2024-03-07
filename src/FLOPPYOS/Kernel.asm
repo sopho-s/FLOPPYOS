@@ -141,7 +141,7 @@ INT69check2:
     ;  \_____|_|  |_/_/    \_\_| \_|\_____|______|    
     ;  
     mov dx, cx
-    mov cx, 3
+    mov cx, 4
     mov ah, 1
     int 0x69
     pop dx
