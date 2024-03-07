@@ -258,6 +258,11 @@ failfind2:
     mov bx, failedfind2
     mov ah, 2
     int 0x42
+    mov ah, 5
+    int 0x42
+    mov bx, findname
+    mov ah, 2
+    int 0x42
     ret
 
 
@@ -460,7 +465,7 @@ printbcd:
     mov al, 0x30
     mov ah, 1
     int 0x42
-double
+double:
     mov ah, 4
     int 0x42
     ret

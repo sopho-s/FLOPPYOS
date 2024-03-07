@@ -67,6 +67,9 @@ INT69:
 ; ********************************* ;
     cmp ah, 1
     jne INT69check2
+    push bx
+    push cx
+    push dx
     ; sets all the preconditions
     mov [sectorread], bx
     push cx
@@ -101,6 +104,9 @@ INT69:
     mov dl, 0
     int 0x13
     setc al
+    pop dx
+    pop cx
+    pop bx
     iret
 ; ********************************* ;
 ; READ FILE|AH=2|INT69              ;
@@ -120,6 +126,10 @@ INT69:
 INT69check2:
     cmp ah, 2
     jne INT69check3
+    push ax
+    push bx
+    push cx
+    push dx
     mov ah, 3
     int 0x69
     ; currently will not read the right amount of sectors
@@ -130,9 +140,14 @@ INT69check2:
     ; | |____| |  | |/ ____ \| |\  | |__| | |____ 
     ;  \_____|_|  |_/_/    \_\_| \_|\_____|______|    
     ;  
+    mov dx, cx
     mov cx, 3
     mov ah, 1
     int 0x69
+    pop dx
+    pop cx
+    pop bx
+    pop ax
     iret
 ; ********************************* ;
 ; FIND FILE|AH=3|INT69              ;
@@ -152,6 +167,8 @@ INT69check2:
 INT69check3:
     cmp ah, 3
     jne endint69
+    push cx
+    push dx
     ; reads the root directory
     push cx
     push bx
@@ -162,7 +179,7 @@ INT69check3:
     int 0x69
     setc al
     cmp al, 1
-    je endint69
+    je endint69dc
     ; finds where the file is located
     mov ax, 0
     mov [count], ax
@@ -202,16 +219,23 @@ INT69fail3:
     jl INT69next3
     sub sp, 4
     mov al, 2
+    pop dx
+    pop cx
     iret
 INT69pass3:
     ; finds the physical sector and loads it into memory at the specified location
-    pop dx
+    pop bx
     add ax, 16
     mov di, ax
     mov bx, [di]
     add bx, 31
     mov al, 0
+    pop dx
+    pop cx
     iret
+endint69dc:
+    pop dx
+    pop cx
 endint69:
     iret
 
@@ -250,6 +274,7 @@ INT42:
 INT42check2:
     cmp ah, 2
     jne INT42check3
+    push ax
 printString:
     ; move current character in al to print
     mov al, [bx]
@@ -262,6 +287,7 @@ printString:
     inc bx
     jmp printString
 end:
+    pop ax
     iret
 ; ********************************* ;
 ; PRINT DIGIT|AH=3|INT42            ;
@@ -275,11 +301,13 @@ end:
 INT42check3:
     cmp ah, 3
     jne INT42check4
+    push ax
     ; adds 0x30 to the number to get its ASCII equivalent
     add al, 0x30
     ; prints number
     mov ah, 0x01
     int 0x42
+    pop ax
     iret
 ; ********************************* ;
 ; PRINT MULTIPLE DIGITS|AH=4|INT42  ;
@@ -293,6 +321,9 @@ INT42check3:
 INT42check4:
     cmp ah, 4
     jne INT42check5
+    push ax
+    push cx
+    push dx
     ; sets all parameters 
     mov cx, 0
     mov ax, bx
@@ -331,6 +362,9 @@ repeatprint:
     ; checks if there are any more digits, if not finish
     cmp cx, 0
     jne repeatprint
+    pop dx
+    pop cx
+    pop ax
     iret
 ; ********************************* ;
 ; PRINT NEW LINE|AH=5|INT42         ;
@@ -344,12 +378,14 @@ repeatprint:
 INT42check5:
     cmp ah, 5
     jne endint42
+    push ax
     ; prints new line
     mov ah, 0x0e
     mov al, 0x0A
     int 0x10
     mov al, 0x0D
     int 0x10
+    pop ax
     iret
 endint42:
     iret
@@ -415,10 +451,12 @@ INT96:
 ; ***************************************** ;
     cmp ah, 1
     jne INT96check2
+    push dx
     mov dx, 0x9000
     mov ah, 1
     int 0x69
     mov sp, ss
+    pop dx
     jmp 0x9000
 ; ***************************** ;
 ; EXIT TO TERMINAL|AH=2|INT96   ;
@@ -436,11 +474,14 @@ INT96:
 INT96check2:
     cmp ah, 2
     jne endint96
-    mov ah, 2
+    push bx
+    push cx
     mov bx, terminalname
     mov cx, 0x9000
     int 0x69
     mov sp, ss
+    pop cx
+    pop bx
     jmp 0x9000
 endint96:
     iret
