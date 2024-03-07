@@ -380,27 +380,68 @@ datetime:
     mov cx, 0
     cmp cx, [parametercount]
     jne badparam
-    mov ah, 2
+    mov ah, 4
     int 0x1a
     jc faileddatetime
-    mov al, ch
-    xor ah, ah
-    push ax
-    shr al, 4
-    mov bx, 10
-    mul bx
-    mov bx, ax
-    pop ax
-    and ax, 00001111b
-    add bx, ax
-    mov ah, 4
+    xor bl, bl
+    ; gets date
+    mov cl, dl
+    call printbcd
+    mov al, 0x2d
+    mov ah, 1
     int 0x42
+
+
+    mov ah, 4
+    int 0x1a
+    mov cl, dh
+    xor bl, bl
+    call printbcd
+    mov al, 0x2d
+    mov ah, 1
+    int 0x42
+
+
+    mov ah, 4
+    int 0x1a
+    mov cl, ch
+    xor bl, bl
+    call printbcd
+    mov ah, 4
+    int 0x1a
+    mov bl, 1
+    call printbcd
+
+    mov al, 0x20
+    mov ah, 1
+    int 0x42
+    mov al, 0x20
+    mov ah, 1
+    int 0x42
+
+    ; gets time
+    mov ah, 2
+    int 0x1a
+    mov cl, ch
+    xor bl, bl
+    call printbcd
     mov al, 0x3a
     mov ah, 1
     int 0x42
 
     mov ah, 2
     int 0x1a
+    mov bl, 1
+    call printbcd
+    ret
+faileddatetime:
+    mov bx, faileddt
+    mov ah, 2
+    int 0x42
+    ret
+
+printbcd:
+    push bx
     mov al, cl
     xor ah, ah
     push ax
@@ -411,12 +452,16 @@ datetime:
     pop ax
     and ax, 00001111b
     add bx, ax
-    mov ah, 4
+    pop cx
+    cmp cl, 1
+    jne double
+    cmp bx, 10
+    jge double
+    mov al, 0x30
+    mov ah, 1
     int 0x42
-    ret
-faileddatetime:
-    mov bx, faileddt
-    mov ah, 2
+double
+    mov ah, 4
     int 0x42
     ret
 
