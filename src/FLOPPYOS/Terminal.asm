@@ -185,11 +185,12 @@ functable:
     je restart
     cmp cx, 5
     je datetime
-    
+    cmp cx, 6
+    je colour
 
 clear:
     ; clears the screen
-    mov al, 0x03
+    mov al, 0x12
     mov ah, 0x00
     int 0x10
     mov ax, [parametercount]
@@ -471,6 +472,49 @@ double:
     ret
 
 
+colour:
+    mov cx, 1
+    cmp cx, [parametercount]
+    jne badparam
+    pop bx
+    mov si, colours
+    mov di, bx
+    mov cx, 0
+repeatcolour:
+    mov al, [di]
+    mov ah, 1
+    int 0x83
+    mov ah, [si]
+    cmp ah, al
+    jne failcolour
+    inc si
+    inc di
+    cmp byte [si], 2
+    jl foundcolour
+    jmp repeatcolour
+failcolour:
+    mov di, bx
+    inc cx
+failcolourrep:
+    inc si
+    cmp byte [si], 0
+    je nofoundcolour
+    cmp byte [si], 1
+    jne failcolourrep
+    inc si
+    jmp repeatcolour
+nofoundcolour:
+    mov bx, nocolour
+    mov ah, 2
+    int 0x42
+    ret
+foundcolour:
+    mov bx, cx
+    mov ah, 6
+    int 0x42
+    ret
+
+
 badparam:
     ; displays that the wrong amount of parameters were given
     mov bx, badparameters
@@ -499,13 +543,15 @@ foundfilep1 db "Found file, it is located at the logical sector: ", 0
 foundfilep2 db "And is located at the physical sector: ", 0
 testmsg db "Test", 0
 findname db "TERMINALBIN"
+nocolour db "Failed to find specified colour", 0
 parameterpoint dw 0
 endpointer dw 0
 parametercount dw 0
-cmdam db 6
-cmds db "shutdown", "clear", "find", "open", "restart", "datetime"
-cmdsize dw 8, 5, 4, 4, 7, 8
-cmdcumsize dw 8, 13, 17, 21, 28, 36
+cmdam db 7
+cmds db "shutdown", "clear", "find", "open", "restart", "datetime", "colour"
+cmdsize dw 8, 5, 4, 4, 7, 8, 6
+cmdcumsize dw 8, 13, 17, 21, 28, 36, 42
+colours db "BLACK", 1, "BLUE", 1, "GREEN", 1, "CYAN", 1, "RED", 1, "MAGENTA", 1, "BROWN", 1, "LIGHTGREY", 1, "DARKGREY", 1, "LIGHTBLUE", 1, "LIGHTGREEN", 1, "LIGHTCYAN", 1, "LIGHTRED", 1, "LIGHTMAGENTA", 1, "YELLOW", 1, "WHITE", 0 
 i dw 0
 count dw 0
 address dw 0

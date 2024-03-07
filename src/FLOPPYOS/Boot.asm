@@ -3,6 +3,9 @@ bits 16
 org		0x7c00	
 
 start:
+    ; sets video mode
+    mov ax, 0x12
+    int 0x10
     ; print startup message
     mov ah, 0x0e 
     mov bx, startmsg

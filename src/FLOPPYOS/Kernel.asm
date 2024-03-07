@@ -259,8 +259,11 @@ INT42:
 ; ********************************* ;
     cmp ah, 1
     jne INT42check2
+    push bx
+    mov bl, [colour]
     mov ah, 0x0e 
     int 0x10
+    pop bx
     iret
 ; ********************************* ;
 ; PRINT STRING|AH=2|INT42           ;
@@ -377,7 +380,7 @@ repeatprint:
 ; ********************************* ;
 INT42check5:
     cmp ah, 5
-    jne endint42
+    jne INT42check6
     push ax
     ; prints new line
     mov ah, 0x0e
@@ -386,6 +389,20 @@ INT42check5:
     mov al, 0x0D
     int 0x10
     pop ax
+    iret
+; ************************* ;
+; CHANGE COLOUR|AH=6|INT42  ;
+;                           ;
+; INPUTS:                   ;
+; BL = COLOUR               ;
+;                           ;
+; OUTPUTS:                  ;
+; NONE                      ;
+; ************************* ;
+INT42check6:
+    cmp ah, 6
+    jne endint42
+    mov [colour], bl
     iret
 endint42:
     iret
@@ -400,7 +417,7 @@ INT83:
     cmp ah, 0
     je endint83
 ; ********************************* ;
-; CAPITALISE CHAR|AH=1|INT42        ;
+; CAPITALISE CHAR|AH=1|INT83        ;
 ;                                   ;
 ; INPUTS:                           ;
 ; AL = CHAR                         ;
@@ -431,6 +448,8 @@ endint83cf:
     stc
 endint83:
     iret
+
+
 
 INT96:
     cmp ah, 0
@@ -544,6 +563,7 @@ quot dw 0
 memorystart dw 0
 count dw 0
 totalexp dw 0
+colour db 0x0f
 
 times 7680-($-$$) db 0x00
 dw 0x88
