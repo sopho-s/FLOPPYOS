@@ -181,6 +181,10 @@ functable:
     je find
     cmp cx, 3
     je open
+    cmp cx, 4
+    je restart
+    cmp cx, 5
+    je datetime
     
 
 clear:
@@ -361,6 +365,107 @@ open:
     sub sp, 2
     int 0x96
 
+
+restart:
+    ; checks the parameter count
+    mov cx, 0
+    cmp cx, [parametercount]
+    jne badparam
+    mov sp, ss
+    jmp 0xffff:0
+
+
+datetime:
+    ; checks parameter count
+    mov cx, 0
+    cmp cx, [parametercount]
+    jne badparam
+    mov ah, 4
+    int 0x1a
+    jc faileddatetime
+    xor bl, bl
+    ; gets date
+    mov cl, dl
+    call printbcd
+    mov al, 0x2d
+    mov ah, 1
+    int 0x42
+
+
+    mov ah, 4
+    int 0x1a
+    mov cl, dh
+    xor bl, bl
+    call printbcd
+    mov al, 0x2d
+    mov ah, 1
+    int 0x42
+
+
+    mov ah, 4
+    int 0x1a
+    mov cl, ch
+    xor bl, bl
+    call printbcd
+    mov ah, 4
+    int 0x1a
+    mov bl, 1
+    call printbcd
+
+    mov al, 0x20
+    mov ah, 1
+    int 0x42
+    mov al, 0x20
+    mov ah, 1
+    int 0x42
+
+    ; gets time
+    mov ah, 2
+    int 0x1a
+    mov cl, ch
+    xor bl, bl
+    call printbcd
+    mov al, 0x3a
+    mov ah, 1
+    int 0x42
+
+    mov ah, 2
+    int 0x1a
+    mov bl, 1
+    call printbcd
+    ret
+faileddatetime:
+    mov bx, faileddt
+    mov ah, 2
+    int 0x42
+    ret
+
+printbcd:
+    push bx
+    mov al, cl
+    xor ah, ah
+    push ax
+    shr al, 4
+    mov bx, 10
+    mul bx
+    mov bx, ax
+    pop ax
+    and ax, 00001111b
+    add bx, ax
+    pop cx
+    cmp cl, 1
+    jne double
+    cmp bx, 10
+    jge double
+    mov al, 0x30
+    mov ah, 1
+    int 0x42
+double
+    mov ah, 4
+    int 0x42
+    ret
+
+
 badparam:
     ; displays that the wrong amount of parameters were given
     mov bx, badparameters
@@ -384,6 +489,7 @@ cmdnotfounderror db "Command not found", 0
 badparameters db "Bad parameters for entered function", 0
 failedfind2 db "Failed to find specified file", 0
 failedfind1 db "Failed to read sector", 0
+faileddt db "Failed to get date and time", 0
 foundfilep1 db "Found file, it is located at the logical sector: ", 0
 foundfilep2 db "And is located at the physical sector: ", 0
 testmsg db "Test", 0
@@ -391,10 +497,10 @@ findname db "TERMINALBIN"
 parameterpoint dw 0
 endpointer dw 0
 parametercount dw 0
-cmdam db 4
-cmds db "shutdown", "clear", "find", "open"
-cmdsize dw 8, 5, 4, 4
-cmdcumsize dw 8, 13, 17, 21
+cmdam db 6
+cmds db "shutdown", "clear", "find", "open", "restart", "datetime"
+cmdsize dw 8, 5, 4, 4, 7, 8
+cmdcumsize dw 8, 13, 17, 21, 28, 36
 i dw 0
 count dw 0
 address dw 0

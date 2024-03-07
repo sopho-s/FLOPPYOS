@@ -122,7 +122,15 @@ INT69check2:
     jne INT69check3
     mov ah, 3
     int 0x69
-    mov cx, 2
+    ; currently will not read the right amount of sectors
+    ;   _____ _    _          _   _  _____ ______ 
+    ;  / ____| |  | |   /\   | \ | |/ ____|  ____|
+    ; | |    | |__| |  /  \  |  \| | |  __| |__   
+    ; | |    |  __  | / /\ \ | . - | | |_ |  __|  
+    ; | |____| |  | |/ ____ \| |\  | |__| | |____ 
+    ;  \_____|_|  |_/_/    \_\_| \_|\_____|______|    
+    ;  
+    mov cx, 3
     mov ah, 1
     int 0x69
     iret
@@ -435,6 +443,30 @@ INT96check2:
     mov sp, ss
     jmp 0x9000
 endint96:
+    iret
+
+INT80:
+    cmp ah, 0
+    je endint80
+; ***************************** ;
+; PROTECT MEMORY|AH=1|INT96     ;
+;                               ;
+; INPUTS:                       ;
+; BX = MEMORY LOCATION START    ;
+; CX = MEMORY SIZE              ;
+;                               ;
+; OUTPUTS:                      ;
+; CX = MEMORY KEY               ;
+; AL = FAIL STATE               ;
+;                               ;
+; FAILSTATES:                   ;
+; 0 = SUCCESS                   ;
+; 1 = FAILED TO PROTECT MEMORY  ;
+; ***************************** ;
+    cmp ah, 1
+    jne endint80
+    ; currently does nothing, i did not mean to add this
+endint80:
     iret
 
 
