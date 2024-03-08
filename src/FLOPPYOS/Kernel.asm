@@ -166,7 +166,7 @@ INT69check2:
 ; ********************************* ;
 INT69check3:
     cmp ah, 3
-    jne endint69
+    jne INT69check4
     push cx
     push dx
     ; reads the root directory
@@ -232,6 +232,87 @@ INT69pass3:
     mov al, 0
     pop dx
     pop cx
+    iret
+; ********************************* ;
+; FIND FILE SECTORS|AH=4|INT69      ;
+;                                   ;
+; INPUTS:                           ;
+; BX = FILE NAME                    ;
+;                                   ;
+; OUTPUTS:                          ;
+; AL = FAIL STATE                   ;
+; CX = SECTOR AMOUNT                ;
+; BX = POINTER TO SECTOR INDEXES    ;
+;                                   ;
+; FAILSTATES:                       ;
+; 0 = SUCCESS                       ;
+; 1 = FAILED TO READ SECTOR         ;
+; 2 = FAILED TO FIND FILE           ;
+; ********************************* ;
+INT69check4:
+    cmp ah, 4
+    jne endint69
+    push ax
+    push dx
+    ; finds file logical sector
+    mov ah, 3
+    int 0x69
+    sub bx, 31
+    push bx
+    ; loads in the FAT table
+    mov bx, 1
+    mov cx, 9
+    mov dx, 0x5e00
+    mov ah, 1
+    int 0x69
+    pop bx
+    mov cx, 1
+    ; saves the first value
+    mov [0x5400], bx
+    cmp bx, 0xff8
+    jge endint69ad
+    mov di, 0x5404
+    mov ax, bx
+    mov cx, 2
+    div cx
+    add bx, ax
+    mov ah, dl
+    mov cx, 1
+    mov si, 0x5e00
+    add si, bx
+readnext4:
+    inc cx
+    ; bit manipulation to get the value
+    mov dx, [si]
+    cmp ah, 0
+    ; if even take low 12 else take higher 12
+    je even
+odd:
+    and dx, 1111111111110000b
+    shr dx, 4
+    jmp next
+even:
+    and dx, 0000111111111111b
+    jmp next
+next:
+    ; checks if value is the last
+    cmp dx, 0xff8
+    jge endint69ad
+    mov [di], dx
+    add di, 4
+    ; moves to next index
+    mov si, 0x5e00
+    mov bx, dx
+    mov ax, bx
+    mov cx, 2
+    div cx
+    add bx, ax
+    mov ah, dl
+    add si, bx
+    jmp readnext4
+endint69ad:
+    pop dx
+    pop ax
     iret
 endint69dc:
     pop dx

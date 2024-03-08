@@ -248,6 +248,22 @@ find:
     mov ah, 4
     add bx, 31
     int 0x42
+    mov ah, 5
+    int 0x42
+    ; currently here for test purposes
+    mov bx, findname
+    mov ah, 4
+    int 0x69
+    push cx
+    mov bx, foundfilep3
+    mov ah, 2
+    int 0x42
+    mov ah, 4
+    pop cx
+    mov bx, cx
+    int 0x42
+    mov ah, 5
+    int 0x42
     ret
 failfind:
     ; displays the error message
@@ -561,6 +577,8 @@ failedfind1 db "Failed to read sector", 0
 faileddt db "Failed to get date and time", 0
 foundfilep1 db "Found file, it is located at the logical sector: ", 0
 foundfilep2 db "And is located at the physical sector: ", 0
+foundfilep3 db "The amount of sectors in the file is: ", 0
+foundfilep4 db "The sectors are: ", 0
 testmsg db "Test", 0
 findname db "TERMINALBIN"
 nocolour db "Failed to find specified colour", 0
