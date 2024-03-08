@@ -242,7 +242,6 @@ INT69pass3:
 ; OUTPUTS:                          ;
 ; AL = FAIL STATE                   ;
 ; CX = SECTOR AMOUNT                ;
-; BX = POINTER TO SECTOR INDEXES    ;
 ;                                   ;
 ; FAILSTATES:                       ;
 ; 0 = SUCCESS                       ;
@@ -253,6 +252,7 @@ INT69check4:
     cmp ah, 4
     jne endint69
     push ax
+    push bx
     push dx
     ; finds file logical sector
     mov ah, 3
@@ -266,52 +266,41 @@ INT69check4:
     mov ah, 1
     int 0x69
     pop bx
-    mov cx, 1
+    mov cx, 0
     ; saves the first value
     mov [0x5400], bx
-    cmp bx, 0xff8
-    jge endint69ad
-    mov di, 0x5404
-    mov ax, bx
-    mov cx, 2
-    div cx
-    add bx, ax
-    mov ah, dl
-    mov cx, 1
-    mov si, 0x5e00
-    add si, bx
+    mov di, 0x5402
 readnext4:
     inc cx
-    ; bit manipulation to get the value
-    mov dx, [si]
-    cmp ah, 0
-    ; if even take low 12 else take higher 12
-    je even
-odd:
-    and dx, 1111111111110000b
-    shr dx, 4
-    jmp next
-even:
-    and dx, 0000111111111111b
-    jmp next
-next:
-    ; checks if value is the last
-    cmp dx, 0xff8
-    jge endint69ad
-    mov [di], dx
-    add di, 4
-    ; moves to next index
-    mov si, 0x5e00
-    mov bx, dx
+    push cx
     mov ax, bx
-    mov cx, 2
-    div cx
-    add bx, ax
-    mov ah, dl
+    shr ax, 1
+    add ax, bx
+    mov si, 0x5e00
+    add si, ax
+    mov dx, [si]
+    shr bx, 1
+    jc odd
+    and dx, 0x0fff
+    jmp even
+odd:
+    shr dx, 4
+even:
+    mov bx, dx
+    pop cx
+    mov [di], bx
+    add di, 2
+    mov si, 0x5e00
     add si, bx
+    mov dx, [si]
+    cmp bx, 0xff8
+    jge endint69abd
+    cmp cx, 5
+    jge endint69abd
     jmp readnext4
-endint69ad:
+endint69abd:
     pop dx
+    pop bx
     pop ax
     iret
 endint69dc:
@@ -645,6 +634,3 @@ memorystart dw 0
 count dw 0
 totalexp dw 0
 colour db 0x0f
-
-times 7680-($-$$) db 0x00
-dw 0x88
