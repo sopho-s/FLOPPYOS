@@ -130,20 +130,30 @@ INT69check2:
     push bx
     push cx
     push dx
-    mov ah, 3
+    push cx
+    ; finds files sectors
+    mov ah, 4
     int 0x69
-    ; currently will not read the right amount of sectors
-    ;   _____ _    _          _   _  _____ ______ 
-    ;  / ____| |  | |   /\   | \ | |/ ____|  ____|
-    ; | |    | |__| |  /  \  |  \| | |  __| |__   
-    ; | |    |  __  | / /\ \ | . - | | |_ |  __|  
-    ; | |____| |  | |/ ____ \| |\  | |__| | |____ 
-    ;  \_____|_|  |_/_/    \_\_| \_|\_____|______|    
-    ;  
-    mov dx, cx
-    mov cx, 4
+    mov si, 0x5400
+    mov ax, cx
+    pop cx
+    mov di, cx
+read:
+    cmp ax, 0
+    je int69end2
+    push ax
+    mov bx, [si]
+    add bx, 31
+    mov dx, di
+    mov cx, 1
     mov ah, 1
     int 0x69
+    pop ax
+    dec ax
+    add di, 0x200
+    add si, 2
+    jmp read
+int69end2:
     pop dx
     pop cx
     pop bx
