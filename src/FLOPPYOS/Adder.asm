@@ -45,4 +45,3 @@ startup:
 
 ;data
 startmessage db "Please enter two numbers", 0
-times 7680-($-$$) db 0x00
