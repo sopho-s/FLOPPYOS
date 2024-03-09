@@ -283,7 +283,7 @@ push bx
 mov ah, 1
 mov bx, 19
 mov cx, 1
-mov dx, 0x4200
+mov dx, 0x3800
 int 0x69
 setc al
 cmp al, 1
@@ -294,7 +294,7 @@ mov [count], ax
 mov [totalexp], ax
 pop bx
 mov cx, bx
-mov ax, 0x4200
+mov ax, 0x3800
 jmp INT69next5
 INT69next5:
 ; checks if the two characters match
@@ -556,10 +556,35 @@ INT83:
     clc
     iret
 ; ********************************* ;
+; IS LETTER|AH=2|INT83              ;
+;                                   ;
+; INPUTS:                           ;
+; AL = CHAR                         ;
+;                                   ;
+; OUTPUTS:                          ;
+; AL = FAIL STATE                   ;
+;                                   ;
+; FAIL STATES:                      ;
+; 0 = WAS LETTER                    ;
+; 1 = WAS NOT LETTER                ;
 ; ********************************* ;
 INT83check2:
     cmp ah, 2
     jne endint83
+    push ax
+    mov ah, 1
+    int 0x83
+    cmp al, 0x41
+    jl endint83cfa
+    cmp al, 0x5a
+    jg endint83cfa
+    pop ax
+    mov al, 0
+    iret
+endint83cfa:
+    pop ax
+    mov al, 1
+    iret
 endint83cf:
     stc
 endint83:
