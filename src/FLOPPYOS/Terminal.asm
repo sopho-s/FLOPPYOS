@@ -189,6 +189,8 @@ functable:
     je colour
     cmp cx, 7
     je help
+    cmp cx, 8
+    je discover
 
 clear:
     ; clears the screen
@@ -248,6 +250,36 @@ find:
     mov ah, 4
     add bx, 31
     int 0x42
+    mov ah, 5
+    int 0x42
+    mov bx, findname
+    mov ah, 4
+    int 0x69
+    push cx
+    mov bx, foundfilep3
+    mov ah, 2
+    int 0x42
+    mov ah, 4
+    pop cx
+    mov bx, cx
+    int 0x42
+    mov ah, 5
+    int 0x42
+    mov bx, foundfilep4
+    mov ah, 2
+    int 0x42
+    mov si, 0x5400
+nextsect:
+    dec cx
+    mov al, 0x20
+    mov ah, 1
+    int 0x42
+    mov bx, [si]
+    mov ah, 4
+    int 0x42
+    add si, 2
+    cmp cx, 0
+    jne nextsect
     ret
 failfind:
     ; displays the error message
@@ -516,7 +548,74 @@ foundcolour:
     int 0x42
     ret
 
+discover:
+    mov cx, 0
+    cmp cx, [parametercount]
+    jne badparam
+    ; load in the directory table
+    mov dx, 0x3200
+    mov cx, 14
+    mov bx, 19
+    mov ah, 1
+    int 0x69
+    ; set pre params
+    mov si, 0x3200
+    add si, 0x20
+    mov bx, 0
+    mov cx, 11
+    mov dx, 224
+    ; prints next letter in the directory
+nextprintdiscover:
+    mov al, [si]
+    inc si
+    dec cx
+    push ax
+    mov ah, 2
+    int 0x83
+    cmp al, 1
+    jne printvaldisc
+    pop ax
+continuedisc:
+    ; checks if the last value has been printed
+    cmp cx, 0
+    je nextdiscover
+    jmp nextprintdiscover
+nextdiscover:
+    ; finds the next filename
+    dec dx
+    add si, 0x35
+    mov cx, 11
+    ; checks if it is the last file
+    cmp dx, 0
+    je findiscover
+    cmp bx, 0
+    je findiscover
+    mov bx, 0
+    jmp nextprintdiscover
+printvaldisc:
+    pop ax
+    cmp bx, 0
+    jne continprint
+    cmp dx, 224
+    je continprint
+    mov ah, 5
+    int 0x42
+    ; prints the value
+continprint:
+    mov bx, 1
+    mov ah, 1
+    int 0x42
+    jmp continuedisc
+findiscover:
+    ret
+
+
+
+
 help:
+    mov cx, 0
+    cmp cx, [parametercount]
+    jne badparam
     mov bx, helptext1
     mov ah, 2
     int 0x42
@@ -561,16 +660,18 @@ failedfind1 db "Failed to read sector", 0
 faileddt db "Failed to get date and time", 0
 foundfilep1 db "Found file, it is located at the logical sector: ", 0
 foundfilep2 db "And is located at the physical sector: ", 0
+foundfilep3 db "The amount of sectors in the file is: ", 0
+foundfilep4 db "The sectors are:", 0
 testmsg db "Test", 0
 findname db "TERMINALBIN"
 nocolour db "Failed to find specified colour", 0
 parameterpoint dw 0
 endpointer dw 0
 parametercount dw 0
-cmdam db 8
-cmds db "shutdown", "clear", "find", "open", "restart", "datetime", "colour", "help"
-cmdsize dw 8, 5, 4, 4, 7, 8, 6, 4
-cmdcumsize dw 8, 13, 17, 21, 28, 36, 42, 46
+cmdam db 9
+cmds db "shutdown", "clear", "find", "open", "restart", "datetime", "colour", "help", "discover"
+cmdsize dw 8, 5, 4, 4, 7, 8, 6, 4, 8
+cmdcumsize dw 8, 13, 17, 21, 28, 36, 42, 46, 54
 colours db "BLACK", 1, "BLUE", 1, "GREEN", 1, "CYAN", 1, "RED", 1, "MAGENTA", 1, "BROWN", 1, "LIGHTGREY", 1, "DARKGREY", 1, "LIGHTBLUE", 1, "LIGHTGREEN", 1, "LIGHTCYAN", 1, "LIGHTRED", 1, "LIGHTMAGENTA", 1, "YELLOW", 1, "WHITE", 0 
 i dw 0
 count dw 0
@@ -579,7 +680,7 @@ testval dw 0
 tempnum dw 0
 quot dw 0
 helptext1 db "clear: clears the terminal", 0x0A, 0x0D, "shutdown: shuts the computer down", 0x0A, 0x0D, 0
-helptext2 db "find {filename}: finds a file on the computer and prints its logical and physical sector", 0x0A, 0x0D, 0
+helptext2 db "find {filename}: finds a file on the computer", 0x0A, 0x0D, 0
 helptext3 db "open {filename}: opens the file specified and runs it", 0x0A, 0x0D, "restart: performs a warm restart", 0x0A, 0x0D, 0
 helptext4 db "datetime: outputs the date time in a 'D-M-Y H:M' format", 0x0A, 0x0D, 0
-helptext5 db "colour {colour}: changes all future text specified colour", 0
+helptext5 db "colour {colour}: changes all future text specified colour", 0x0A, 0x0D, "discover: prints all files on the disk", 0

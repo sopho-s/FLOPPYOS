@@ -1,8 +1,50 @@
 bits 16
 
-org		0x7c00	
+
+org 0x7c00
+
+jmp start
+dw 0x904D
+dw 0x494B
+dw 0x4542
+dw 0x4F4F
+dw 0x5400
+dw 0x0201
+dw 0x0100
+dw 0x02E0
+dw 0x0040
+dw 0x0BF0
+dw 0x0900
+dw 0x1200
+dw 0x0200
+dw 0x0000
+dw 0x0000
+dw 0x0000
+dw 0x0000
+dw 0x0000
+dw 0x2900
+dw 0x0000
+dw 0x004D
+dw 0x494B
+dw 0x454F
+dw 0x5320
+dw 0x2020
+dw 0x2020
+dw 0x4641
+dw 0x5431
+dw 0x3220
+dw 0x2020
+
 
 start:
+    cli
+    xor ax, ax 
+    mov es, ax
+    mov ds, ax
+    mov bp, 0x8000
+    mov sp, 0x0000
+    mov ss, sp 
+    sti
     ; sets video mode
     mov ax, 0x12
     int 0x10
@@ -13,8 +55,6 @@ start:
     call printNewline
 
     ; checks if there is enough memory for the kernel
-    xor ax, ax
-    mov ss, sp
     int 0x12
     cmp ax, [kernalsize]
     jl lowmemory
@@ -23,6 +63,7 @@ start:
     mov ah, 0x53
     mov al, 0x00
     xor bx, bx
+    clc
     int 0x15
     jc apmerror
 
@@ -30,6 +71,7 @@ start:
     mov ah, 0x53
     mov al, 0x01
     xor bx, bx
+    clc
     int 0x15
     jc apmerror
     mov bl, 0
@@ -39,15 +81,13 @@ start:
     mov ah, 0
     mov dl, 0
     int 0x13
-    xor ax, ax                          
+    xor ax, ax 
     mov es, ax
     mov ds, ax
     mov bp, 0x8000
     mov sp, 0x0000
     call readsect
-    
     jmp 0x7e00
-
 
 printmdigit:
     mov cx, 0
@@ -101,11 +141,10 @@ apmerror:
     call printString
     jmp $
 
-
-    kernalsize dw 1
-    apmerr db "An error occured with your APM", 0
-    lowmemfail db "Low memory", 0
-    startmsg db "Loading kernel...", 0
+kernalsize dw 1
+apmerr db "An error occured with your APM", 0
+lowmemfail db "Low memory", 0
+startmsg db "Loading kernel...", 0
 
 printString:
     mov al, [bx]
@@ -114,7 +153,7 @@ printString:
     int 0x10
     inc bx
     jmp printString
-end:
+    end:
     ret
 
 printNewline:
@@ -125,12 +164,10 @@ printNewline:
     int 0x10
     ret
 
-
 printChar:
     mov ah, 0x0e 
     int 0x10
     ret
-
 
 LBACHS:
     xor dx, dx
@@ -149,7 +186,7 @@ readsect:
     mov ah, 0
     mov dl, 0
     int 0x13
-    xor ax, ax                          
+    xor ax, ax 
     mov es, ax
     mov ds, ax
     mov bx, 0x7e00
@@ -174,7 +211,6 @@ headspercylinder dw 2
 memorystart dw 0x7e00
 quot dw 0
 tempnum dw 0
- 
 
-times 510-($-$$) db 0x00            
+times 510-($-$$) db 0x00 
 dw 0xaa55
