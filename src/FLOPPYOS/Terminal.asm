@@ -692,5 +692,5 @@ helptext1 db "clear: clears the terminal", 0x0A, 0x0D, "shutdown: shuts the comp
 helptext2 db "find {filename}: finds a file on the computer", 0x0A, 0x0D, 0
 helptext3 db "open {filename}: opens the file specified and runs it", 0x0A, 0x0D, "restart: performs a warm restart", 0x0A, 0x0D, 0
 helptext4 db "datetime: outputs the date time in a 'D-M-Y H:M' format", 0x0A, 0x0D, 0
-helptext5 db "colour {colour}: changes all future text specified colour", 0
+helptext5 db "colour {colour}: changes all future text specified colour", 0x0A, 0x0D, "discover: prints all the files on your floppy", 0
 apmerr db "Your APM may not be supported", 0
