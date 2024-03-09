@@ -17,6 +17,8 @@ Currently supported commands:
 - restart: performs a warm restart
 - datetime: outputs the date time
 - colour: changes the colour of the text
+- help: displays all commands
+- discover: displays all the files
 
 ### That's it, currently
 ## Plans
