@@ -17,6 +17,8 @@ Currently supported commands:
 - restart: performs a warm restart
 - datetime: outputs the date time
 - colour: changes the colour of the text
+- help: displays all commands
+- discover: displays all the files
 
 ### That's it, currently
 ## Plans
@@ -57,6 +59,22 @@ bash Build.sh
 ```
 
 And this will install, build, and launch FLOPPYOS
+
+#### Burning onto a floppy disk
+
+First mount the disk
+
+Burning this on will remove all data onto your disk
+
+Run the following command
+
+```
+sudo dd status=noxfer conv=notrunc if=test.img of=/dev/sdb bs=4M && sync
+```
+
+Wait until finish, eject and then it's done
+
+Enjoy FLOPPYOS (:
 
 ### For Windows
 
