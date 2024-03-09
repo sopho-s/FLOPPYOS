@@ -24,14 +24,14 @@ start:
     mov al, 0x00
     xor bx, bx
     int 0x15
-    jc apmerror
+    setc bl
+    mov [0x0000], bl
 
     ; connect to APM interface
     mov ah, 0x53
     mov al, 0x01
     xor bx, bx
     int 0x15
-    jc apmerror
     mov bl, 0
     mov [0x1000], bl
 
@@ -95,15 +95,7 @@ lowmemory:
     call printString
     jmp $
 
-apmerror:
-    mov ah, 0x0e
-    mov bx, apmerr
-    call printString
-    jmp $
-
-
     kernalsize dw 1
-    apmerr db "An error occured with your APM", 0
     lowmemfail db "Low memory", 0
     startmsg db "Loading kernel...", 0
 

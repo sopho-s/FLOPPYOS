@@ -212,7 +212,16 @@ shutdown:
     mov dx, 2
     mul dx
     add sp, ax
+    call apmerror
     ret
+
+
+apmerror:
+    mov bx, apmerr
+    mov ah, 2
+    int 0x42
+    ret
+
 
 find:
     ; checks the parameter count
@@ -583,3 +592,4 @@ helptext2 db "find {filename}: finds a file on the computer and prints its logic
 helptext3 db "open {filename}: opens the file specified and runs it", 0x0A, 0x0D, "restart: performs a warm restart", 0x0A, 0x0D, 0
 helptext4 db "datetime: outputs the date time in a 'D-M-Y H:M' format", 0x0A, 0x0D, 0
 helptext5 db "colour {colour}: changes all future text specified colour", 0
+apmerr db "Your APM may not be supported", 0
