@@ -58,6 +58,22 @@ bash Build.sh
 
 And this will install, build, and launch FLOPPYOS
 
+#### Burning onto a floppy disk
+
+First mount the disk
+
+Burning this on will remove all data onto your disk
+
+Run the following command
+
+```
+sudo dd status=noxfer conv=notrunc if=test.img of=/dev/sdb bs=4M && sync
+```
+
+Wait until finish, eject and then it's done
+
+Enjoy FLOPPYOS (:
+
 ### For Windows
 
 Make sure you have qemu-system-x86 by installing it through this [link](https://qemu.weilnetz.de/w64/)
