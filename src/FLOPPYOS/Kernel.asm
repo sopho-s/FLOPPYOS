@@ -419,15 +419,12 @@ failfindsect:
 ;                                   ;
 ; INPUTS:                           ;
 ; BX = FORMATTED FILE NAME          ;
-; CX = FILE SIZE                    ;
+; CX = POINTER TO FILE SIZE         ;
 ; DX = FIRST LOGICAL CLUSTER        ;
+; AL = ATTRIBUTE                    ;
 ;                                   ;
 ; OUTPUTS:                          ;
-; AL = FAIL STATE                   ;
-;                                   ;
-; FAIL STATE:                       ;
-; 0 = SUCCESS                       ;
-; 1 = NO SECTORS LEFT               ;
+; NONE                              ;
 ; ********************************* ;
 INT69check7:
     cmp ah, 7
@@ -439,11 +436,85 @@ INT69check7:
     mov cx, 11
     mov si, bx
     mov di, 0x5400
+    ; records the file name
 addfilename69:
     mov [di], [si]
     inc di
     inc si
-    
+    dec cx
+    cmp cx, 0
+    jne addfilename69
+    ; adds the file attribute
+    mov [di], al
+    inc di
+    ; adds the time and date created and last accessed
+    push cx
+    push dx
+    mov ah, 2
+    int 0x1a
+    call convertbcd
+    inc di
+    mov ch, cl
+    call convertbcd
+    inc di
+    mov ah, 4
+    int 0x1a
+    mov ch, cl
+    call convertbcd
+    inc di
+    mov ch, dh
+    call convertbcd
+    inc di
+    mov ch, cl
+    call convertbcd
+    inc di
+    mov ch, dh
+    call convertbcd
+    inc di
+    mov [di], 0x42
+    inc di
+    mov [di], 0x00
+    mov ah, 2
+    int 0x1a
+    call convertbcd
+    inc di
+    mov ch, cl
+    call convertbcd
+    inc di
+    pop cx
+    pop dx
+    ; records the first logical cluster
+    mov [di], dx
+    add di, 2
+    pop cx
+    ; records the file size
+    mov si, cx
+    mov word [di], [si]
+    add si, 2
+    add di, 2
+    mov word [di], [si]
+    pop dx
+    pop cx
+    pop bx
+    iret
+convertbcd:
+    ; converts binary coded decimal to decimal
+    push cx
+    push dx
+    mov al, ch
+    xor ah, ah
+    push ax
+    shr al, 4
+    mov bx, 10
+    mul bx
+    mov bx, ax
+    pop ax
+    and ax, 00001111b
+    add bx, ax
+    mov [di], bl
+    pop dx
+    pop cx
+    ret
 endint69abd:
     pop dx
     pop bx
