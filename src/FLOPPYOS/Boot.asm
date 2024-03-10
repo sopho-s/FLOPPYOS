@@ -41,7 +41,7 @@ start:
     xor ax, ax 
     mov es, ax
     mov ds, ax
-    mov bp, 0x8000
+    mov bp, 0x8200
     mov sp, 0x0000
     mov ss, sp 
     sti
@@ -84,7 +84,7 @@ start:
     xor ax, ax 
     mov es, ax
     mov ds, ax
-    mov bp, 0x8000
+    mov bp, 0x8200
     mov sp, 0x0000
     call readsect
     jmp 0x7e00

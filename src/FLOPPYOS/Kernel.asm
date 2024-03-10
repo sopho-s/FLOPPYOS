@@ -2,45 +2,45 @@ bits 16
 
 org 0x7e00
 kernelstart:
-; sets up interupts
-call setupint
-; print startup message
-mov ah, 2
-mov bx, kernelstartmsg
-int 0x42
-mov ah, 5
-int 0x42
-; prints os name
-mov ah, 2
-mov bx, startmsg
-int 0x42
-mov ah, 5
-int 0x42
-; boots terminal
-mov ah, 2
-mov bx, terminalname
-mov cx, 0x9000
-int 0x69
-jmp 0x9000
+    ; sets up interupts
+    call setupint
+    ; print startup message
+    mov ah, 2
+    mov bx, kernelstartmsg
+    int 0x42
+    mov ah, 5
+    int 0x42
+    ; prints os name
+    mov ah, 2
+    mov bx, startmsg
+    int 0x42
+    mov ah, 5
+    int 0x42
+    ; boots terminal
+    mov ah, 2
+    mov bx, terminalname
+    mov cx, 0x9000
+    int 0x69
+    jmp 0x9000
 
 setupint:
-xor ax,ax
-mov es,ax
-cli 
-mov di, INT69
-mov ES:[0x69*4], di 
-mov ES:[0x69*4+2], CS
-mov di, INT42
-mov ES:[0x42*4], di 
-mov ES:[0x42*4+2], CS
-mov di, INT83
-mov ES:[0x83*4], di 
-mov ES:[0x83*4+2], CS
-mov di, INT96
-mov ES:[0x96*4], di 
-mov ES:[0x96*4+2], CS
-sti
-ret
+    xor ax,ax
+    mov es,ax
+    cli 
+    mov di, INT69
+    mov ES:[0x69*4], di 
+    mov ES:[0x69*4+2], CS
+    mov di, INT42
+    mov ES:[0x42*4], di 
+    mov ES:[0x42*4+2], CS
+    mov di, INT83
+    mov ES:[0x83*4], di 
+    mov ES:[0x83*4+2], CS
+    mov di, INT96
+    mov ES:[0x96*4], di 
+    mov ES:[0x96*4+2], CS
+    sti
+    ret
 
 ; ********************************* ;
 ; INT 69                            ;
@@ -48,8 +48,8 @@ ret
 ; ********************************* ;
 
 INT69:
-cmp ah, 0
-je endint69
+    cmp ah, 0
+    je endint69
 ; ********************************* ;
 ; READ SECTOR|AH=1|INT69            ;
 ;                                   ;
@@ -65,49 +65,49 @@ je endint69
 ; 0 = SUCCESS                       ;
 ; 1 = FAILED TO READ SECTOR         ;
 ; ********************************* ;
-cmp ah, 1
-jne INT69check2
-push bx
-push cx
-push dx
-; sets all the preconditions
-mov [sectorread], bx
-push cx
-xor ch, ch
-mov [numbertoread], cx
-pop cx
-mov [memorystart], dx
-mov ax, [sectorread]
-; calculates the CHS
-xor dx, dx
-div word [sectorspertrack]
-inc dl
-mov byte [sectortoread], dl
-xor dx, dx
-div word [headspercylinder]
-mov byte [headtoread], dl
-mov byte [tracktoread], al
-; resets the disk
-mov ah, 0
-mov dl, 0
-int 0x13
-; reads the data
-xor ax, ax 
-mov es, ax
-mov ds, ax
-mov bx, [memorystart]
-mov ah, 0x02
-mov al, [numbertoread]
-mov ch, [tracktoread]
-mov cl, [sectortoread]
-mov dh, [headtoread]
-mov dl, 0
-int 0x13
-setc al
-pop dx
-pop cx
-pop bx
-iret
+    cmp ah, 1
+    jne INT69check2
+    push bx
+    push cx
+    push dx
+    ; sets all the preconditions
+    mov [sectorread], bx
+    push cx
+    xor ch, ch
+    mov [numbertoread], cx
+    pop cx
+    mov [memorystart], dx
+    mov ax, [sectorread]
+    ; calculates the CHS
+    xor dx, dx
+    div word [sectorspertrack]
+    inc dl
+    mov byte [sectortoread], dl
+    xor dx, dx
+    div word [headspercylinder]
+    mov byte [headtoread], dl
+    mov byte [tracktoread], al
+    ; resets the disk
+    mov ah, 0
+    mov dl, 0
+    int 0x13
+    ; reads the data
+    xor ax, ax 
+    mov es, ax
+    mov ds, ax
+    mov bx, [memorystart]
+    mov ah, 0x02
+    mov al, [numbertoread]
+    mov ch, [tracktoread]
+    mov cl, [sectortoread]
+    mov dh, [headtoread]
+    mov dl, 0
+    int 0x13
+    setc al
+    pop dx
+    pop cx
+    pop bx
+    iret
 ; ********************************* ;
 ; READ FILE|AH=2|INT69              ;
 ;                                   ;
@@ -124,43 +124,43 @@ iret
 ; 2 = FAILED TO FIND FILE           ;
 ; ********************************* ;
 INT69check2:
-cmp ah, 2
-jne INT69check3
-push ax
-push bx
-push cx
-push dx
-push cx
-; finds files sectors
-mov ah, 4
-int 0x69
-mov si, 0x5400
-mov ax, cx
-pop cx
-mov di, cx
+    cmp ah, 2
+    jne INT69check3
+    push ax
+    push bx
+    push cx
+    push dx
+    push cx
+    ; finds files sectors
+    mov ah, 4
+    int 0x69
+    mov si, 0x5400
+    mov ax, cx
+    pop cx
+    mov di, cx
 read:
-; checks if all sectors have been read
-cmp ax, 0
-je int69end2
-push ax
-; reads each sector sequentially
-mov bx, [si]
-add bx, 31
-mov dx, di
-mov cx, 1
-mov ah, 1
-int 0x69
-pop ax
-dec ax
-add di, 0x200
-add si, 2
-jmp read
+    ; checks if all sectors have been read
+    cmp ax, 0
+    je int69end2
+    push ax
+    ; reads each sector sequentially
+    mov bx, [si]
+    add bx, 31
+    mov dx, di
+    mov cx, 1
+    mov ah, 1
+    int 0x69
+    pop ax
+    dec ax
+    add di, 0x200
+    add si, 2
+    jmp read
 int69end2:
-pop dx
-pop cx
-pop bx
-pop ax
-iret
+    pop dx
+    pop cx
+    pop bx
+    pop ax
+    iret
 ; ********************************* ;
 ; FIND FILE|AH=3|INT69              ;
 ;                                   ;
@@ -177,18 +177,18 @@ iret
 ; 2 = FAILED TO FIND FILE           ;
 ; ********************************* ;
 INT69check3:
-cmp ah, 3
-jne INT69check4
-push dx
-push cx
-mov ah, 5
-int 0x69
-mov bx, [0x5410]
-add bx, 31
-mov al, 0
-pop dx
-pop cx
-iret
+    cmp ah, 3
+    jne INT69check4
+    push dx
+    push cx
+    mov ah, 5
+    int 0x69
+    mov bx, [0x5410]
+    add bx, 31
+    mov al, 0
+    pop dx
+    pop cx
+    iret
 ; ********************************* ;
 ; FIND FILE SECTORS|AH=4|INT69      ;
 ;                                   ;
@@ -205,59 +205,59 @@ iret
 ; 2 = FAILED TO FIND FILE           ;
 ; ********************************* ;
 INT69check4:
-cmp ah, 4
-jne INT69check5
-push ax
-push bx
-push dx
-; finds file logical sector
-mov ah, 3
-int 0x69
-sub bx, 31
-push bx
-; loads in the FAT table
-mov bx, 1
-mov cx, 9
-mov dx, 0x5e00
-mov ah, 1
-int 0x69
-pop bx
-mov cx, 0
-; saves the first value
-mov [0x5400], bx
-mov di, 0x5402
+    cmp ah, 4
+    jne INT69check5
+    push ax
+    push bx
+    push dx
+    ; finds file logical sector
+    mov ah, 3
+    int 0x69
+    sub bx, 31
+    push bx
+    ; loads in the FAT table
+    mov bx, 1
+    mov cx, 9
+    mov dx, 0x5e00
+    mov ah, 1
+    int 0x69
+    pop bx
+    mov cx, 0
+    ; saves the first value
+    mov [0x5400], bx
+    mov di, 0x5402
 readnext4:
-inc cx
-push cx
-; calculates the relevant word index
-mov ax, bx
-shr ax, 1
-add ax, bx
-mov si, 0x5e00
-add si, ax
-mov dx, [si]
-shr bx, 1
-; checks if the right or left 12 bits should be kept
-jc odd
-and dx, 0x0fff
-jmp even
-odd:
-shr dx, 4
-even:
-mov bx, dx
-pop cx
-; stores the sector
-mov [di], bx
-add di, 2
-mov si, 0x5e00
-add si, bx
-mov dx, [si]
-; checks if the end of the file has been reached
-cmp bx, 0xff8
-jge endint69abd
-cmp cx, 5
-jge endint69abd
-jmp readnext4
+    inc cx
+    push cx
+    ; calculates the relevant word index
+    mov ax, bx
+    shr ax, 1
+    add ax, bx
+    mov si, 0x5e00
+    add si, ax
+    mov dx, [si]
+    shr bx, 1
+    ; checks if the right or left 12 bits should be kept
+    jc odd4
+    and dx, 0x0fff
+    jmp even4
+odd4:
+    shr dx, 4  
+even4:
+    mov bx, dx
+    pop cx
+    ; stores the sector
+    mov [di], bx
+    add di, 2
+    mov si, 0x5e00
+    add si, bx
+    mov dx, [si]
+    ; checks if the end of the file has been reached
+    cmp bx, 0xff8
+    jge endint69abd
+    cmp cx, 5
+    jge endint69abd
+    jmp readnext4
 ; ********************************* ;
 ; FIND FILE DETAILS|AH=5|INT69      ;
 ;                                   ;
@@ -273,88 +273,157 @@ jmp readnext4
 ; 2 = FAILED TO FIND FILE           ;
 ; ********************************* ;
 INT69check5:
-cmp ah, 5
-jne endint69
-push cx
-push dx
-; reads the root directory
-push cx
-push bx
-mov ah, 1
-mov bx, 19
-mov cx, 1
-mov dx, 0x3800
-int 0x69
-setc al
-cmp al, 1
-je endint69dc
-; finds where the file is located
-mov ax, 0
-mov [count], ax
-mov [totalexp], ax
-pop bx
-mov cx, bx
-mov ax, 0x3800
-jmp INT69next5
+    cmp ah, 5
+    jne INT69check6
+    push cx
+    push dx
+    ; reads the root directory
+    push cx
+    push bx
+    mov ah, 1
+    mov bx, 19
+    mov cx, 1
+    mov dx, 0x3800
+    int 0x69
+    setc al
+    cmp al, 1
+    je endint69dc
+    ; finds where the file is located
+    mov ax, 0
+    mov [count], ax
+    mov [totalexp], ax
+    pop bx
+    mov cx, bx
+    mov ax, 0x3820
+    jmp INT69next5
 INT69next5:
-; checks if the two characters match
-mov di, ax
-mov dx, [di]
-mov di, cx
-cmp [di], dx
-jne INT69fail5
-; increments both pointers
-inc ax
-; checks if the value was found
-cmp word [count], 9
-je INT69pass5
-; increments the count
-add word [count], 1 
-add word [totalexp], 1
-; increments the name of the directory
-mov cx, bx
-add cx, [count]
-jmp INT69next5
+    ; checks if the two characters match
+    mov di, ax
+    mov dx, [di]
+    mov di, cx
+    cmp [di], dx
+    jne INT69fail5
+    ; increments both pointers
+    inc ax
+    ; checks if the value was found
+    cmp word [count], 9
+    je INT69pass5
+    ; increments the count
+    add word [count], 1
+    ; increments the name of the directory
+    mov cx, bx
+    add cx, [count]
+    jmp INT69next5
 INT69fail5:
-; increments the currently compared character
-inc ax
-mov cx, bx
-; resets count
-mov word [count], 0
-; increments the count of the total searched
-add word [totalexp], 1
-cmp word [totalexp], 0x1c00
-jl INT69next5
-sub sp, 4
-mov al, 2
-pop dx
-pop cx
-iret
+    ; increments the currently compared character
+    mov cx, bx
+    ; resets count
+    mov word [count], 0
+    ; increments the count of the total searched
+    add word [totalexp], 1
+    mov ax, 0x3820
+    push bx
+    push ax
+    mov ax, [totalexp]
+    mov bx, 0x40
+    mul bx
+    pop bx
+    add ax, bx
+    pop bx
+    cmp word [totalexp], 0x10
+    jl INT69next5
+    sub sp, 2
+    mov al, 2
+    pop dx
+    pop cx
+    iret
 INT69pass5:
-pop cx
-mov cx, 21
-mov di, 0x5400
-mov si, ax
-; moves details about the file to the interrupt pointer memory location
+    pop cx
+    mov cx, 21
+    mov di, 0x5400
+    mov si, ax
+    ; moves details about the file to the interrupt pointer memory location
 INT69nextbyte:
-cmp cx, 0
-je endint69dc
-mov al, [si]
-mov [di], al
-inc di
-inc si
-dec cx
-jmp INT69nextbyte
+    cmp cx, 0
+    je endint69dc
+    mov al, [si]
+    mov [di], al
+    inc di
+    inc si
+    dec cx
+    jmp INT69nextbyte
+; ********************************* ;
+; FIND NEXT FREE SECTOR|AH=6|INT69  ;
+;                                   ;
+; INPUTS:                           ;
+; CX = SECTOR AMOUNT                ;
+;                                   ;
+; OUTPUTS:                          ;
+; AL = FAIL STATE                   ;
+;                                   ;
+; FAIL STATE:                       ;
+; 0 = SUCCESS                       ;
+; 1 = NO SECTORS LEFT               ;
+; ********************************* ;
+INT69check6:
+    cmp ah, 6
+    jne endint69
+    push bx
+    push cx
+    push dx
+    mov bx, 0
+    mov di, 0x5400
+nextsect:
+    mov ax, bx
+    push bx
+    shr ax, 1
+    add ax, bx
+    mov si, 0x5e00
+    add si, ax
+    mov dx, [si]
+    shr bx, 1
+    ; checks if the right or left 12 bits should be kept
+    jc odd6
+    and dx, 0x0fff
+    jmp even6
+odd6:
+    shr dx, 4  
+even6:
+    pop bx
+    inc bx
+    ; checks if there are no free sectors
+    cmp bx, 2846
+    jge failfindsect
+    ; checks if the current sector is free
+    cmp dx, 0x0000
+    jne nextsect
+    dec bx
+    mov [di], bx
+    add di, 2
+    inc bx
+    dec cx
+    cmp cx, 0
+    jne nextsect
+    pop dx
+    pop cx
+    pop bx
+    iret
+failfindsect:
+    pop dx
+    pop cx
+    pop bx
+    mov al, 1
+    iret
 endint69abd:
-pop dx
-pop bx
-pop ax
-iret
+    pop dx
+    pop bx
+    pop ax
+    iret
 endint69dc:
-pop dx
-pop cx
+    pop dx
+    pop cx
 endint69:
-iret
+    iret
 
 ; ********************************* ;
 ; INT 42                            ;

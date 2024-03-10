@@ -7,6 +7,7 @@ nasm "Boot.asm" -f bin -o "Boot.bin"
 nasm "Kernel.asm" -f bin -o "Kernel.bin"
 nasm "Terminal.asm" -f bin -o "Terminal.bin"
 nasm "Adder.asm" -f bin -o "Adder"
+nasm "Findfree.asm" -f bin -o "Findfree"
 
 cat "Boot.bin"  > "OS.bin"
 
@@ -17,6 +18,7 @@ sudo mount -o loop test.img /media/floppy1/
 sudo cp ./Kernel.bin /media/floppy1/
 sudo cp ./Terminal.bin /media/floppy1/
 sudo cp ./Adder /media/floppy1/
+sudo cp ./Findfree /media/floppy1/
 sudo umount /media/floppy1/
 dd status=noxfer conv=notrunc if=OS.bin of=test.img
 qemu-system-i386 -m 1 -fda test.img 
