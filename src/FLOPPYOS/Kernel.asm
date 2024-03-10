@@ -367,7 +367,7 @@ INT69nextbyte:
 ; ********************************* ;
 INT69check6:
     cmp ah, 6
-    jne endint69
+    jne INT69check7
     push bx
     push cx
     push dx
@@ -414,6 +414,36 @@ failfindsect:
     pop bx
     mov al, 1
     iret
+; ********************************* ;
+; MAKE FILE DESCRIPTORS|AH=6|INT69  ;
+;                                   ;
+; INPUTS:                           ;
+; BX = FORMATTED FILE NAME          ;
+; CX = FILE SIZE                    ;
+; DX = FIRST LOGICAL CLUSTER        ;
+;                                   ;
+; OUTPUTS:                          ;
+; AL = FAIL STATE                   ;
+;                                   ;
+; FAIL STATE:                       ;
+; 0 = SUCCESS                       ;
+; 1 = NO SECTORS LEFT               ;
+; ********************************* ;
+INT69check7:
+    cmp ah, 7
+    jne endint69
+    push bx
+    push cx
+    push dx
+    push cx
+    mov cx, 11
+    mov si, bx
+    mov di, 0x5400
+addfilename69:
+    mov [di], [si]
+    inc di
+    inc si
+    
 endint69abd:
     pop dx
     pop bx
