@@ -196,7 +196,7 @@ sectorread dw 34
 sectortoread db 0
 tracktoread db 0
 headtoread db 0
-numbertoread db 2
+numbertoread db 3
 totalsectors dw 2880
 sectorspertrack dw 18
 tracksperside dw 80

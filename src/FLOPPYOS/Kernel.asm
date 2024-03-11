@@ -56,7 +56,7 @@ INT69:
 ; INPUTS:                           ;
 ; BX = SECTOR START NUMBER          ;
 ; CX = NUMBER OF SECTORS TO READ    ;
-; DX = RESULTANT MEMORY LOCATION    ;
+; ES:DX = RESULTANT MEMORY LOCATION ;
 ;                                   ;
 ; OUTPUTS:                          ;
 ; AL = FAIL STATE                   ;
@@ -113,7 +113,7 @@ INT69:
 ;                                   ;
 ; INPUTS:                           ;
 ; BX = FILE NAME                    ;
-; CX = RESULTANT MEMORY LOCATION    ;
+; ES:CX = RESULTANT MEMORY LOCATION ;
 ;                                   ;
 ; OUTPUTS:                          ;
 ; AL = FAIL STATE                   ;
@@ -371,7 +371,7 @@ INT69check6:
     push bx
     push cx
     push dx
-    mov bx, 0
+    mov bx, 3
     mov di, 0x5400
 nextsect:
     mov ax, bx
@@ -390,6 +390,16 @@ odd6:
     shr dx, 4  
 even6:
     pop bx
+    push bx
+    push ax
+    mov bx, dx
+    mov ah, 8
+    int 0x42
+    mov al, 0x20
+    mov ah, 1
+    int 0x42
+    pop ax
+    pop bx
     inc bx
     ; checks if there are no free sectors
     cmp bx, 2846
@@ -404,6 +414,7 @@ even6:
     dec cx
     cmp cx, 0
     jne nextsect
+    mov word [di], 0xffff
     pop dx
     pop cx
     pop bx
@@ -415,7 +426,7 @@ failfindsect:
     mov al, 1
     iret
 ; ********************************* ;
-; MAKE FILE DESCRIPTORS|AH=6|INT69  ;
+; MAKE FILE DESCRIPTORS|AH=7|INT69  ;
 ;                                   ;
 ; INPUTS:                           ;
 ; BX = FORMATTED FILE NAME          ;
@@ -428,17 +439,19 @@ failfindsect:
 ; ********************************* ;
 INT69check7:
     cmp ah, 7
-    jne endint69
+    jne INT69check8
     push bx
     push cx
     push dx
     push cx
+    push dx
     mov cx, 11
     mov si, bx
     mov di, 0x5400
     ; records the file name
 addfilename69:
-    mov [di], [si]
+    mov dh, [si]
+    mov [di], dh
     inc di
     inc si
     dec cx
@@ -447,9 +460,9 @@ addfilename69:
     ; adds the file attribute
     mov [di], al
     inc di
+    mov word [di], 0x0000
+    add di, 2
     ; adds the time and date created and last accessed
-    push cx
-    push dx
     mov ah, 2
     int 0x1a
     call convertbcd
@@ -471,9 +484,10 @@ addfilename69:
     mov ch, dh
     call convertbcd
     inc di
-    mov [di], 0x42
+    mov byte [di], 0x42
     inc di
-    mov [di], 0x00
+    mov byte [di], 0x00
+    inc di
     mov ah, 2
     int 0x1a
     call convertbcd
@@ -481,7 +495,14 @@ addfilename69:
     mov ch, cl
     call convertbcd
     inc di
-    pop cx
+    mov ah, 4
+    int 0x1a
+    mov ch, cl
+    call convertbcd
+    inc di
+    mov ch, dh
+    call convertbcd
+    inc di
     pop dx
     ; records the first logical cluster
     mov [di], dx
@@ -489,10 +510,12 @@ addfilename69:
     pop cx
     ; records the file size
     mov si, cx
-    mov word [di], [si]
+    mov dx, [si]
+    mov [di], dx
     add si, 2
     add di, 2
-    mov word [di], [si]
+    mov dx, [si]
+    mov word [di], dx
     pop dx
     pop cx
     pop bx
@@ -515,6 +538,65 @@ convertbcd:
     pop dx
     pop cx
     ret
+; ********************************* ;
+; WRITE SECTOR|AH=8|INT69           ;
+;                                   ;
+; INPUTS:                           ;
+; BX = SECTOR START NUMBER          ;
+; CX = NUMBER OF SECTORS TO WRITE   ;
+; ES:DX = SOURCE MEMORY LOCATION    ;
+;                                   ;
+; OUTPUTS:                          ;
+; AL = FAIL STATE                   ;
+;                                   ;
+; FAILSTATES:                       ;
+; 0 = SUCCESS                       ;
+; 1 = FAILED TO WRITE TO DISK       ;
+; ********************************* ;
+INT69check8:
+    cmp ah, 8
+    jne endint69
+    push bx
+    push cx
+    push dx
+    ; sets all the preconditions
+    mov [sectorread], bx
+    push cx
+    xor ch, ch
+    mov [numbertoread], cx
+    pop cx
+    mov [memorystart], dx
+    mov ax, [sectorread]
+    ; calculates the CHS
+    xor dx, dx
+    div word [sectorspertrack]
+    inc dl
+    mov byte [sectortoread], dl
+    xor dx, dx
+    div word [headspercylinder]
+    mov byte [headtoread], dl
+    mov byte [tracktoread], al
+    ; resets the disk
+    mov ah, 0
+    mov dl, 0
+    int 0x13
+    ; reads the data
+    xor ax, ax 
+    mov es, ax
+    mov ds, ax
+    mov bx, [memorystart]
+    mov ah, 0x03
+    mov al, [numbertoread]
+    mov ch, [tracktoread]
+    mov cl, [sectortoread]
+    mov dh, [headtoread]
+    mov dl, 0
+    int 0x13
+    setc al
+    pop dx
+    pop cx
+    pop bx
+    iret
 endint69abd:
     pop dx
     pop bx
@@ -687,8 +769,89 @@ INT42check5:
 ; ************************* ;
 INT42check6:
     cmp ah, 6
-    jne endint42
+    jne INT42check7
     mov [colour], bl
+    iret
+; ********************************* ;
+; PRINT HEX DIGIT|AH=3|INT42        ;
+;                                   ;
+; INPUTS:                           ;
+; AL = DIGIT                        ;
+;                                   ;
+; OUTPUTS:                          ;
+; NONE                              ;
+; ********************************* ;
+INT42check7:
+    cmp ah, 7
+    jne INT42check8
+    push ax
+    ; adds 0x30 to the number to get its ASCII equivalent
+    add al, 0x30
+    cmp al, 0x39
+    jl continueprint42
+    add al, 0x07
+    ; prints number
+continueprint42:
+    mov ah, 0x01
+    int 0x42
+    pop ax
+    iret
+; ************************************* ;
+; PRINT MULTIPLE HEX DIGITS|AH=8|INT42  ;
+;                                       ;
+; INPUTS:                               ;
+; BX = DIGITS                           ;
+;                                       ;
+; OUTPUTS:                              ;
+; NONE                                  ;
+; ************************************* ;
+INT42check8:
+    cmp ah, 8
+    jne endint42
+    push ax
+    push cx
+    push dx
+    ; sets all parameters 
+    mov cx, 0
+    mov ax, bx
+    mov [quot], ax
+repeathex:
+    ; clears all not used registers
+    xor ax, ax
+    xor bx, bx
+    xor dx, dx
+    ; divides the number by ten to get the digit to put on the stack
+    mov ax, [quot]
+    mov bx, 16
+    div bx
+    mov [quot], ax
+    ; checks if the devision is finished
+    cmp ax, 0
+    je divendhex
+    mov ax, dx
+    push ax
+    ; increments the digit count
+    inc cx
+    jmp repeathex
+divendhex:
+    mov ax, dx
+    push ax
+    inc cx
+repeatprinthex:
+    ; decrements the digit counter and gets the next digit to print from the stack
+    dec cx
+    pop ax
+    push cx
+    ; prints the digit
+    mov ah, 7
+    int 0x42
+    pop cx
+    ; checks if there are any more digits, if not finish
+    cmp cx, 0
+    jne repeatprinthex
+    pop dx
+    pop cx
+    pop ax
     iret
 endint42:
     iret
