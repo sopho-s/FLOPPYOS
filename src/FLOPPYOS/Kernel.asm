@@ -16,6 +16,9 @@ kernelstart:
     int 0x42
     mov ah, 5
     int 0x42
+    ; clears memory table
+    mov ah, 1
+    int 0x80
     ; boots terminal
     mov ah, 2
     mov bx, terminalname
@@ -39,6 +42,9 @@ setupint:
     mov di, INT96
     mov ES:[0x96*4], di 
     mov ES:[0x96*4+2], CS
+    mov di, INT80
+    mov ES:[0x80*4], di 
+    mov ES:[0x80*4+2], CS
     sti
     ret
 
@@ -983,23 +989,65 @@ INT80:
     cmp ah, 0
     je endint80
 ; ***************************** ;
-; PROTECT MEMORY|AH=1|INT96     ;
-;                               ;
-; INPUTS:                       ;
-; BX = MEMORY LOCATION START    ;
-; CX = MEMORY SIZE              ;
-;                               ;
-; OUTPUTS:                      ;
-; CX = MEMORY KEY               ;
-; AL = FAIL STATE               ;
-;                               ;
-; FAILSTATES:                   ;
-; 0 = SUCCESS                   ;
-; 1 = FAILED TO PROTECT MEMORY  ;
+; CLEAR MEMORY TABLE|AH=1|INT80 ;
 ; ***************************** ;
     cmp ah, 1
+    jne INT80check2
+    push di
+    push cx
+    mov cx, 0x0C00
+    mov di, 0x0200
+    ; goes through each value in table and sets them to 0
+nextover:
+    jcxz end801
+    mov word [di], 0x0000
+    add di, 2
+    dec cx
+    jmp nextover
+end801:
+    pop cx
+    pop di
+    iret
+; ***************************** ;
+; GET MEMORY BLOCK|AH=2|INT80   ;
+;                               ;
+; INPUTS:                       ;
+; BX = PROGRAM ID               ;
+; CX = MEMORY BLOCK AMOUNT      ;
+; ***************************** ;
+INT80check2:
+    cmp ah, 2
     jne endint80
-    ; currently does nothing, i did not mean to add this
+    push ax
+    push bx
+    mov dx, 0x0000
+    mov si, 0x0200
+    mov di, 0x5400
+    ; creates value to be stored in the memory table
+    add bx, 0x2000
+    ; searches for the next free block
+search:
+    ; checks if the block is free
+    mov ax, [si]
+    cmp al, 0x01
+    jg next
+    ; if it is free, write to say it's not free
+    dec cx
+    mov [di], dx
+    add di, 2
+    mov [si], bx
+next:
+    ; increment to next value
+    add si, 2
+    add dx, 1
+    ; checks if there is anymore needed or if there are no memory blocks left
+    cmp cx, 0
+    je finish
+    cmp dx, 0x7b8
+    jne search
+finish:
+    pop bx
+    pop ax
 endint80:
     iret
 
