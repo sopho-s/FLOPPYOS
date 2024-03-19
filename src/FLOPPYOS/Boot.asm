@@ -39,11 +39,11 @@ dw 0x2020
 start:
     cli
     xor ax, ax 
+    mov ss, ax
+    mov sp, 0x37ff
     mov es, ax
     mov ds, ax
     mov bp, 0x8200
-    mov sp, 0x0000
-    mov ss, sp 
     sti
     ; sets video mode
     mov ax, 0x12
@@ -66,7 +66,6 @@ start:
     clc
     int 0x15
     setc bl
-    mov [0x0000], bl
 
     ; connect to APM interface
     mov ah, 0x53
@@ -75,8 +74,7 @@ start:
     clc
     int 0x15
     mov bl, 0
-    mov [0x1000], bl
-
+    
     ; load in kernel and hand over control
     mov ah, 0
     mov dl, 0
@@ -85,7 +83,6 @@ start:
     mov es, ax
     mov ds, ax
     mov bp, 0x8200
-    mov sp, 0x0000
     call readsect
     jmp 0x7e00
 
@@ -196,7 +193,7 @@ sectorread dw 34
 sectortoread db 0
 tracktoread db 0
 headtoread db 0
-numbertoread db 3
+numbertoread db 4
 totalsectors dw 2880
 sectorspertrack dw 18
 tracksperside dw 80

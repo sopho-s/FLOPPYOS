@@ -10,15 +10,20 @@ kernelstart:
     int 0x42
     mov ah, 5
     int 0x42
+    ; clears memory table
+    mov bx, memorytableclearmsg
+    mov ah, 2
+    int 0x42
+    mov ah, 5
+    int 0x42
+    mov ah, 1
+    int 0x80
     ; prints os name
     mov ah, 2
     mov bx, startmsg
     int 0x42
     mov ah, 5
     int 0x42
-    ; clears memory table
-    mov ah, 1
-    int 0x80
     ; boots terminal
     mov ah, 2
     mov bx, terminalname
@@ -779,7 +784,7 @@ INT42check6:
     mov [colour], bl
     iret
 ; ********************************* ;
-; PRINT HEX DIGIT|AH=3|INT42        ;
+; PRINT HEX DIGIT|AH=7|INT42        ;
 ;                                   ;
 ; INPUTS:                           ;
 ; AL = DIGIT                        ;
@@ -794,7 +799,7 @@ INT42check7:
     ; adds 0x30 to the number to get its ASCII equivalent
     add al, 0x30
     cmp al, 0x39
-    jl continueprint42
+    jle continueprint42
     add al, 0x07
     ; prints number
 continueprint42:
@@ -949,22 +954,19 @@ INT96:
 ; 1 = FAILED TO READ SECTOR                 ;
 ; ***************************************** ;
     cmp ah, 1
-    jne INT69check2
+    jne INT96check2
     push bx
     push cx
     push dx
 freenext96:
     mov bl, 0
-    push dx
-    mov dx, 0
     mov ah, 3
     int 0x80
-    pop dx
-    inc dx
-    mov di, 0x200
+    mov di, 0x600
     add di, dx
     mov word [di], 0x2101
-    sub cx
+    dec cx
+    inc dx
     jcxz continue
     jmp freenext96
 continue:
@@ -1000,6 +1002,19 @@ INT96check2:
     mov bx, terminalname
     mov ah, 4
     int 0x69
+freenext962:
+    mov bl, 0
+    mov ah, 3
+    int 0x80
+    mov di, 0x600
+    add di, dx
+    mov word [di], 0x2101
+    dec cx
+    inc dx
+    jcxz continue2
+    jmp freenext962
+continue2:
+    mov bx, terminalname
     mov ah, 2
     mov cx, 0x9000
     int 0x69
@@ -1021,14 +1036,15 @@ INT80:
     jne INT80check2
     push di
     push cx
-    mov cx, 0x0C00
-    mov di, 0x0200
+    mov cx, 0x03ff
+    mov di, 0x0600
     ; goes through each value in table and sets them to 0
 nextover:
-    jcxz end801
-    mov word [di], 0x0000
+    xor ax, ax
+    mov [di], ax
     add di, 2
     dec cx
+    jcxz end801
     jmp nextover
 end801:
     pop cx
@@ -1048,7 +1064,7 @@ INT80check2:
     push ax
     push bx
     mov dx, 0x0000
-    mov si, 0x0200
+    mov si, 0x0600
     mov di, 0x5400
     ; creates value to be stored in the memory table
     add bx, 0x2000
@@ -1098,8 +1114,9 @@ INT80check3:
     jg invalidmemblock
     ; checks if the program has the correct credidentials to clear the memory block
     mov ax, dx
-    mul ax, 2
-    add ax, 0x200
+    mov cx, 2
+    mul cx
+    add ax, 0x600
     mov di, ax
     mov ax, [di]
     ; checks if the block is not reserved by the kernel (all memory reserved by the kernel should not be removed under any circumstance)
@@ -1116,7 +1133,7 @@ attributepass3:
     cmp al, bl
     je credidentialspass3
     ; checks if the kernel is forcing a block to be freed
-    cmp 0x00, bl
+    cmp bl, 0x00
     je credidentialspass3
     mov al, 1
     pop dx
@@ -1130,7 +1147,7 @@ credidentialspass3:
     ; - a near pointer (can be expressed in 2 bytes)
     ; - a small far pointer (far pointer with only 512 max offset value e.g. 0xFBE0:0x0000)
     ; - a large far pointer (full far pointer e.g. 0xFFFF:0xFEF0)
-    mov cx, 0x200
+    mov cx, 0x600
     cmp dx, 0x37f
     jg largefar
     cmp dx, 0x37
@@ -1143,7 +1160,7 @@ credidentialspass3:
     add ax, 0x9000
     mov di, ax
     jmp cont80
-invalidmemblock3:
+invalidmemblock:
     pop dx
     pop cx
     pop bx
@@ -1165,7 +1182,8 @@ largefar:
     sub ax, 0x37f
     mul cx
     mov di, ax
-    mov es, 0xffff
+    mov ax, 0xffff
+    mov es, ax
     jmp cont80
 cont80:
     ; sets up the counter to count the full block
@@ -1204,8 +1222,9 @@ INT80check4:
     jg invalidmemblock
     ; checks if the program has the correct credidentials to unassign the memory block
     mov ax, dx
-    mul ax, 2
-    add ax, 0x200
+    mov cx, 2
+    mul cx
+    add ax, 0x600
     mov di, ax
     mov ax, [di]
     ; checks if the block is not reserved by the kernel (all memory reserved by the kernel should not be removed under any circumstance)
@@ -1255,6 +1274,7 @@ terminalname db "TERMINALBIN", 0
 kernelstartmsg db "Kernel loaded", 0
 startmsg db "Welcome to FLOPPYOS", 0
 terminalerror db "Error loading terminal", 0
+memorytableclearmsg db "Clearing memory table", 0
 testmsg db "TEST", 0
 totalsectors dw 2880
 sectorspertrack dw 18
