@@ -1017,7 +1017,7 @@ end801:
 ; ***************************** ;
 INT80check2:
     cmp ah, 2
-    jne endint80
+    jne INT80check3
     push ax
     push bx
     mov dx, 0x0000
@@ -1045,6 +1045,164 @@ next:
     je finish
     cmp dx, 0x7b8
     jne search
+; ***************************** ;
+; CLEAR MEMORY BLOCK|AH=3|INT80 ;
+;                               ;
+; INPUTS:                       ;
+; BL = PROGRAM ID               ;
+; DX = MEMORY BLOCK LOCATION    ;
+;                               ;
+; OUTPUTS:                      ;
+; AL = FAIL STATE               ;
+;                               ;
+; FAIL STATES:                  ;
+; 0 = SUCCESS                   ;
+; 1 = INVALID CREDIDENTAILS     ;
+; 2 = INVALID MEMORY BLOCK      ;
+; ***************************** ;
+INT80check3:
+    cmp ah, 3
+    jne INT80check4
+    push bx
+    push cx
+    push dx
+    ; checks if the value is within the memory bounds
+    cmp dx, 0x3ff
+    jg invalidmemblock
+    ; checks if the program has the correct credidentials to clear the memory block
+    mov ax, dx
+    mul ax, 2
+    add ax, 0x200
+    mov di, ax
+    mov ax, [di]
+    ; checks if the block is not reserved by the kernel (all memory reserved by the kernel should not be removed under any circumstance)
+    cmp ah, 0x30
+    jne attributepass3
+    mov al, 1
+    pop dx
+    pop cx
+    pop bx
+    iret
+attributepass3:
+    ; checks if the program has matching credentials
+    cmp al, bl
+    jne credidentialspass3
+    mov al, 1
+    pop dx
+    pop cx
+    pop bx
+    iret
+credidentialspass3:
+    xor ax, ax
+    mov [di], ax
+    ; checks if the value is:
+    ; - a near pointer (can be expressed in 2 bytes)
+    ; - a small far pointer (far pointer with only 512 max offset value e.g. 0xFBE0:0x0000)
+    ; - a large far pointer (full far pointer e.g. 0xFFFF:0xFEF0)
+    mov cx, 0x200
+    cmp dx, 0x37f
+    jg largefar
+    cmp dx, 0x37
+    jg smallfar
+    ; performs the calculations for a near pointer
+    xor ax, ax
+    mov es, ax
+    mov ax, dx
+    mul cx
+    add ax, 0x9000
+    mov di, ax
+    jmp cont80
+invalidmemblock3:
+    pop dx
+    pop cx
+    pop bx
+    mov al, 2
+    iret
+smallfar:
+    ; performs the calculations for a small far pointer
+    mov ax, dx
+    mul cx
+    add ax, 0x9000
+    mov cx, 0x10
+    mul cx
+    mov es, ax
+    mov di, 0x0000
+    jmp cont80
+largefar:
+    ; performs the calculations for a large far pointer
+    mov ax, dx
+    sub ax, 0x37f
+    mul cx
+    mov di, ax
+    mov es, 0xffff
+    jmp cont80
+cont80:
+    ; sets up the counter to count the full block
+    mov cx, 0x100
+    xor ax, ax
+clear80:
+    ; clears the block
+    mov es:di, ax
+    add di, 2
+    sub cx, 1
+    jcxz endclear80
+    jmp clear80
+; ********************************* ;
+; UNASSIGN MEMORY BLOCK|AH=4|INT80  ;
+;                                   ;
+; INPUTS:                           ;
+; BL = PROGRAM ID                   ;
+; DX = MEMORY BLOCK LOCATION        ;
+;                                   ;
+; OUTPUTS:                          ;
+; AL = FAIL STATE                   ;
+;                                   ;
+; FAIL STATES:                      ;
+; 0 = SUCCESS                       ;
+; 1 = INVALID CREDIDENTAILS         ;
+; 2 = INVALID MEMORY BLOCK          ;
+; ********************************* ;
+INT80check4:
+    cmp ah, 4
+    jne endint80
+    push bx
+    push cx
+    push dx
+    ; checks if the value is within the memory bounds
+    cmp dx, 0x3ff
+    jg invalidmemblock
+    ; checks if the program has the correct credidentials to unassign the memory block
+    mov ax, dx
+    mul ax, 2
+    add ax, 0x200
+    mov di, ax
+    mov ax, [di]
+    ; checks if the block is not reserved by the kernel (all memory reserved by the kernel should not be removed under any circumstance)
+    cmp ah, 0x30
+    jne attributepass3
+    mov al, 1
+    pop dx
+    pop cx
+    pop bx
+    iret
+attributepass3:
+    ; checks if the program has matching credentials
+    cmp al, bl
+    jne credidentialspass3
+    mov al, 1
+    pop dx
+    pop cx
+    pop bx
+    iret
+credidentialspass3:
+    xor ax, ax
+    mov [di], ax
+endclear80:
+    pop dx
+    pop cx
+    pop bx
+    mov al, 0
+    iret
 finish:
     pop bx
     pop ax
