@@ -938,7 +938,7 @@ INT96:
 ; LOAD EXTERNAL PROGRAM FROM FILE|AH=1|INT96;
 ;                                           ;
 ; INPUTS:                                   ;
-; BX = PHISICAL SECTOR                      ;
+; BX = PHYSICAL SECTOR                      ;
 ; CX = SECTOR AMOUNT                        ;
 ;                                           ;
 ; OUTPUTS:                                  ;
@@ -949,7 +949,28 @@ INT96:
 ; 1 = FAILED TO READ SECTOR                 ;
 ; ***************************************** ;
     cmp ah, 1
-    jne INT96check2
+    jne INT69check2
+    push bx
+    push cx
+    push dx
+freenext96:
+    mov bl, 0
+    push dx
+    mov dx, 0
+    mov ah, 3
+    int 0x80
+    pop dx
+    inc dx
+    mov di, 0x200
+    add di, dx
+    mov word [di], 0x2101
+    sub cx
+    jcxz continue
+    jmp freenext96
+continue:
+    pop dx
+    pop cx
+    pop bx
     push dx
     mov dx, 0x9000
     mov ah, 1
@@ -975,10 +996,15 @@ INT96check2:
     jne endint96
     push bx
     push cx
+    push dx
     mov bx, terminalname
+    mov ah, 4
+    int 0x69
+    mov ah, 2
     mov cx, 0x9000
     int 0x69
     mov sp, ss
+    pop dx
     pop cx
     pop bx
     jmp 0x9000
@@ -1012,7 +1038,8 @@ end801:
 ; GET MEMORY BLOCK|AH=2|INT80   ;
 ;                               ;
 ; INPUTS:                       ;
-; BX = PROGRAM ID               ;
+; DH = PROGRAM ID               ;
+; DL = ATTRIBUTE AND PURPOSE    ;
 ; CX = MEMORY BLOCK AMOUNT      ;
 ; ***************************** ;
 INT80check2:
@@ -1076,7 +1103,8 @@ INT80check3:
     mov di, ax
     mov ax, [di]
     ; checks if the block is not reserved by the kernel (all memory reserved by the kernel should not be removed under any circumstance)
-    cmp ah, 0x30
+    shr ah, 4
+    cmp ah, 0x3
     jne attributepass3
     mov al, 1
     pop dx
@@ -1086,7 +1114,10 @@ INT80check3:
 attributepass3:
     ; checks if the program has matching credentials
     cmp al, bl
-    jne credidentialspass3
+    je credidentialspass3
+    ; checks if the kernel is forcing a block to be freed
+    cmp 0x00, bl
+    je credidentialspass3
     mov al, 1
     pop dx
     pop cx
@@ -1178,23 +1209,24 @@ INT80check4:
     mov di, ax
     mov ax, [di]
     ; checks if the block is not reserved by the kernel (all memory reserved by the kernel should not be removed under any circumstance)
-    cmp ah, 0x30
-    jne attributepass3
+    shr ah, 4
+    cmp ah, 0x3
+    jne attributepass4
     mov al, 1
     pop dx
     pop cx
     pop bx
     iret
-attributepass3:
+attributepass4:
     ; checks if the program has matching credentials
     cmp al, bl
-    jne credidentialspass3
+    je credidentialspass4
     mov al, 1
     pop dx
     pop cx
     pop bx
     iret
-credidentialspass3:
+credidentialspass4:
     xor ax, ax
     mov [di], ax
 endclear80:
