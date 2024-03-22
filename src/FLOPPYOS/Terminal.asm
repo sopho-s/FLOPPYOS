@@ -654,7 +654,6 @@ badparam:
     add sp, ax
     ret
 
-
 ; data
 terminalcmdmem dw 0x8800
 terminalcmdsize dw 0x199

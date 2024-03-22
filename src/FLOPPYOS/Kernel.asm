@@ -1,6 +1,12 @@
 bits 16
 
 org 0x7e00
+; constants
+%assign memtable 0x600
+%assign filetable 0x3800
+%assign interruptpoint 0x5400
+%assign FATtable 0x5e00
+%assign generalmem 0x9000
 kernelstart:
     ; sets up interupts
     call setupint
@@ -27,9 +33,9 @@ kernelstart:
     ; boots terminal
     mov ah, 2
     mov bx, terminalname
-    mov cx, 0x9000
+    mov cx, generalmem
     int 0x69
-    jmp 0x9000
+    jmp generalmem
 
 setupint:
     xor ax,ax
@@ -145,7 +151,7 @@ INT69check2:
     ; finds files sectors
     mov ah, 4
     int 0x69
-    mov si, 0x5400
+    mov si, interruptpoint
     mov ax, cx
     pop cx
     mov di, cx
@@ -229,13 +235,13 @@ INT69check4:
     ; loads in the FAT table
     mov bx, 1
     mov cx, 9
-    mov dx, 0x5e00
+    mov dx, FATtable
     mov ah, 1
     int 0x69
     pop bx
     mov cx, 0
     ; saves the first value
-    mov [0x5400], bx
+    mov [interruptpoint], bx
     mov di, 0x5402
 readnext4:
     inc cx
@@ -244,7 +250,7 @@ readnext4:
     mov ax, bx
     shr ax, 1
     add ax, bx
-    mov si, 0x5e00
+    mov si, FATtable
     add si, ax
     mov dx, [si]
     shr bx, 1
@@ -260,7 +266,7 @@ even4:
     ; stores the sector
     mov [di], bx
     add di, 2
-    mov si, 0x5e00
+    mov si, FATtable
     add si, bx
     mov dx, [si]
     ; checks if the end of the file has been reached
@@ -294,7 +300,7 @@ INT69check5:
     mov ah, 1
     mov bx, 19
     mov cx, 1
-    mov dx, 0x3800
+    mov dx, filetable
     int 0x69
     setc al
     cmp al, 1
@@ -351,7 +357,7 @@ INT69fail5:
 INT69pass5:
     pop cx
     mov cx, 21
-    mov di, 0x5400
+    mov di, interruptpoint
     mov si, ax
     ; moves details about the file to the interrupt pointer memory location
 INT69nextbyte:
@@ -383,13 +389,13 @@ INT69check6:
     push cx
     push dx
     mov bx, 3
-    mov di, 0x5400
+    mov di, interruptpoint
 nextsect:
     mov ax, bx
     push bx
     shr ax, 1
     add ax, bx
-    mov si, 0x5e00
+    mov si, FATtable
     add si, ax
     mov dx, [si]
     shr bx, 1
@@ -458,7 +464,7 @@ INT69check7:
     push dx
     mov cx, 11
     mov si, bx
-    mov di, 0x5400
+    mov di, interruptpoint
     ; records the file name
 addfilename69:
     mov dh, [si]
@@ -632,9 +638,6 @@ INT42:
 ;                                   ;
 ; INPUTS:                           ;
 ; AL = CHAR                         ;
-;                                   ;
-; OUTPUTS:                          ;
-; NONE                              ;
 ; ********************************* ;
     cmp ah, 1
     jne INT42check2
@@ -649,9 +652,6 @@ INT42:
 ;                                   ;
 ; INPUTS:                           ;
 ; BX = STRING POINTER, ENDS WITH 0  ;
-;                                   ;
-; OUTPUTS:                          ;
-; NONE                              ;
 ; ********************************* ;
 INT42check2:
     cmp ah, 2
@@ -676,9 +676,6 @@ end:
 ;                                   ;
 ; INPUTS:                           ;
 ; AL = DIGIT                        ;
-;                                   ;
-; OUTPUTS:                          ;
-; NONE                              ;
 ; ********************************* ;
 INT42check3:
     cmp ah, 3
@@ -687,6 +684,7 @@ INT42check3:
     ; adds 0x30 to the number to get its ASCII equivalent
     add al, 0x30
     ; prints number
+    mov bl, [colour]
     mov ah, 0x01
     int 0x42
     pop ax
@@ -696,9 +694,6 @@ INT42check3:
 ;                                   ;
 ; INPUTS:                           ;
 ; BX = DIGITS                       ;
-;                                   ;
-; OUTPUTS:                          ;
-; NONE                              ;
 ; ********************************* ;
 INT42check4:
     cmp ah, 4
@@ -750,12 +745,6 @@ repeatprint:
     iret
 ; ********************************* ;
 ; PRINT NEW LINE|AH=5|INT42         ;
-;                                   ;
-; INPUTS:                           ;
-; NONE                              ;
-;                                   ;
-; OUTPUTS:                          ;
-; NONE                              ;
 ; ********************************* ;
 INT42check5:
     cmp ah, 5
@@ -774,9 +763,6 @@ INT42check5:
 ;                           ;
 ; INPUTS:                   ;
 ; BL = COLOUR               ;
-;                           ;
-; OUTPUTS:                  ;
-; NONE                      ;
 ; ************************* ;
 INT42check6:
     cmp ah, 6
@@ -788,9 +774,6 @@ INT42check6:
 ;                                   ;
 ; INPUTS:                           ;
 ; AL = DIGIT                        ;
-;                                   ;
-; OUTPUTS:                          ;
-; NONE                              ;
 ; ********************************* ;
 INT42check7:
     cmp ah, 7
@@ -812,9 +795,6 @@ continueprint42:
 ;                                       ;
 ; INPUTS:                               ;
 ; BX = DIGITS                           ;
-;                                       ;
-; OUTPUTS:                              ;
-; NONE                                  ;
 ; ************************************* ;
 INT42check8:
     cmp ah, 8
@@ -974,12 +954,12 @@ continue:
     pop cx
     pop bx
     push dx
-    mov dx, 0x9000
+    mov dx, generalmem
     mov ah, 1
     int 0x69
     mov sp, ss
     pop dx
-    jmp 0x9000
+    jmp generalmem
 ; ***************************** ;
 ; EXIT TO TERMINAL|AH=2|INT96   ;
 ;                               ;
@@ -1016,13 +996,13 @@ freenext962:
 continue2:
     mov bx, terminalname
     mov ah, 2
-    mov cx, 0x9000
+    mov cx, generalmem
     int 0x69
     mov sp, ss
     pop dx
     pop cx
     pop bx
-    jmp 0x9000
+    jmp generalmem
 endint96:
     iret
 
@@ -1037,7 +1017,7 @@ INT80:
     push di
     push cx
     mov cx, 0x03ff
-    mov di, 0x0600
+    mov di, memtable
     ; goes through each value in table and sets them to 0
 nextover:
     xor ax, ax
@@ -1054,8 +1034,8 @@ end801:
 ; GET MEMORY BLOCK|AH=2|INT80   ;
 ;                               ;
 ; INPUTS:                       ;
-; DH = PROGRAM ID               ;
-; DL = ATTRIBUTE AND PURPOSE    ;
+; BH = PROGRAM ID               ;
+; BL = ATTRIBUTE AND PURPOSE    ;
 ; CX = MEMORY BLOCK AMOUNT      ;
 ; ***************************** ;
 INT80check2:
@@ -1064,8 +1044,8 @@ INT80check2:
     push ax
     push bx
     mov dx, 0x0000
-    mov si, 0x0600
-    mov di, 0x5400
+    mov si, memtable
+    mov di, interruptpoint
     ; creates value to be stored in the memory table
     add bx, 0x2000
     ; searches for the next free block
@@ -1116,7 +1096,7 @@ INT80check3:
     mov ax, dx
     mov cx, 2
     mul cx
-    add ax, 0x600
+    add ax, memtable
     mov di, ax
     mov ax, [di]
     ; checks if the block is not reserved by the kernel (all memory reserved by the kernel should not be removed under any circumstance)
@@ -1147,7 +1127,7 @@ credidentialspass3:
     ; - a near pointer (can be expressed in 2 bytes)
     ; - a small far pointer (far pointer with only 512 max offset value e.g. 0xFBE0:0x0000)
     ; - a large far pointer (full far pointer e.g. 0xFFFF:0xFEF0)
-    mov cx, 0x600
+    mov cx, memtable
     cmp dx, 0x37f
     jg largefar
     cmp dx, 0x37
@@ -1157,7 +1137,7 @@ credidentialspass3:
     mov es, ax
     mov ax, dx
     mul cx
-    add ax, 0x9000
+    add ax, generalmem
     mov di, ax
     jmp cont80
 invalidmemblock:
@@ -1170,7 +1150,7 @@ smallfar:
     ; performs the calculations for a small far pointer
     mov ax, dx
     mul cx
-    add ax, 0x9000
+    add ax, generalmem
     mov cx, 0x10
     mul cx
     mov es, ax
@@ -1224,7 +1204,7 @@ INT80check4:
     mov ax, dx
     mov cx, 2
     mul cx
-    add ax, 0x600
+    add ax, memtable
     mov di, ax
     mov ax, [di]
     ; checks if the block is not reserved by the kernel (all memory reserved by the kernel should not be removed under any circumstance)
