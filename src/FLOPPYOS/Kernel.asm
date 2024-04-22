@@ -370,7 +370,7 @@ INT69nextbyte:
     dec cx
     jmp INT69nextbyte
 ; ********************************* ;
-; FIND NEXT FREE SECTOR|AH=6|INT69  ;
+; FIND NEXT FREE SECTORS|AH=6|INT69 ;
 ;                                   ;
 ; INPUTS:                           ;
 ; CX = SECTOR AMOUNT                ;
